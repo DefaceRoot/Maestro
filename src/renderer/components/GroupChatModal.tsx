@@ -562,10 +562,13 @@ export function GroupChatModal(props: GroupChatModalProps): JSX.Element | null {
 										setConfigWasModified(true);
 									}
 								}}
-								onConfigBlur={async () => {
+								onConfigBlur={async (key, value) => {
 									if (selectedAgent) {
-										// Use ref to get latest config (state may be stale in async callback)
-										await window.maestro.agents.setConfig(selectedAgent, agentConfigRef.current);
+										// Use the committed value directly to avoid stale state/ref issues
+										const updatedConfig = { ...agentConfigRef.current, [key]: value };
+										agentConfigRef.current = updatedConfig;
+										setAgentConfig(updatedConfig);
+										await window.maestro.agents.setConfig(selectedAgent, updatedConfig);
 										if (mode === 'edit') {
 											setConfigWasModified(true);
 										}

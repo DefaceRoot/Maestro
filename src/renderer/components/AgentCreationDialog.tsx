@@ -520,7 +520,7 @@ export function AgentCreationDialog({
 																},
 															}));
 														}}
-														onConfigBlur={() => {}}
+														onConfigBlur={(_key, _value) => {}}
 														availableModels={availableModels[agent.id] || []}
 														loadingModels={loadingModels[agent.id] || false}
 														onRefreshModels={() => loadModelsForAgent(agent.id, true)}

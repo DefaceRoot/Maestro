@@ -409,11 +409,15 @@ export function EncoreTab({ theme, isOpen }: EncoreTabProps) {
 											setDnAgentConfig(newConfig);
 											dnAgentConfigRef.current = newConfig;
 										}}
-										onConfigBlur={async () => {
+										onConfigBlur={async (key, value) => {
 											if (directorNotesSettings.provider) {
+												// Use the committed value directly to avoid stale state/ref issues
+												const updatedConfig = { ...dnAgentConfigRef.current, [key]: value };
+												dnAgentConfigRef.current = updatedConfig;
+												setDnAgentConfig(updatedConfig);
 												await window.maestro.agents.setConfig(
 													directorNotesSettings.provider,
-													dnAgentConfigRef.current
+													updatedConfig
 												);
 											}
 										}}

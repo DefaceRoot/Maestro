@@ -1016,8 +1016,10 @@ export function AgentSelectionScreen({ theme }: AgentSelectionScreenProps): JSX.
 							onConfigChange={(key, value) => {
 								setAgentConfig((prev) => ({ ...prev, [key]: value }));
 							}}
-							onConfigBlur={async () => {
-								await window.maestro.agents.setConfig(configuringAgentId!, agentConfig);
+							onConfigBlur={async (key, value) => {
+								const updatedConfig = { ...agentConfig, [key]: value };
+								setAgentConfig(updatedConfig);
+								await window.maestro.agents.setConfig(configuringAgentId!, updatedConfig);
 							}}
 							availableModels={availableModels}
 							loadingModels={loadingModels}
