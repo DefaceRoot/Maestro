@@ -19,9 +19,11 @@ import type { ToolType } from '../../../shared/types';
 
 vi.mock('os', async () => {
 	const actual = await vi.importActual<typeof import('os')>('os');
+	const actualOs = 'default' in actual && actual.default ? actual.default : actual;
 	const mocked = {
-		...actual,
+		...actualOs,
 		homedir: vi.fn(() => '/tmp/maestro-session-storage-home'),
+		tmpdir: vi.fn(() => '/tmp'),
 	};
 	return {
 		...mocked,
@@ -1410,7 +1412,7 @@ describe('FactoryDroidSessionStorage SSH Remote Support', () => {
 			expect(localPath).not.toContain('~');
 
 			// Verify local path is absolute
-			expect(localPath?.startsWith('/') || localPath?.match(/^[A-Z]:\\/)).toBeTruthy();
+			expect(path.isAbsolute(localPath!)).toBeTruthy();
 		});
 
 		it('should verify SshRemoteConfig interface is properly accepted', async () => {
@@ -1777,7 +1779,7 @@ describe('SSH Config Integration Flow Verification', () => {
 			// Without SSH config - local path
 			const localPath = storage.getSessionPath(projectPath, sessionId);
 			expect(localPath).not.toContain('~'); // Local paths are absolute
-			expect(localPath?.startsWith('/') || localPath?.match(/^[A-Z]:\\/)).toBeTruthy();
+			expect(path.isAbsolute(localPath!)).toBeTruthy();
 			expect(localPath).toContain('.factory');
 		});
 	});
@@ -1907,8 +1909,8 @@ describe('SSH Config Integration Flow Verification', () => {
 			expect(factoryPath).not.toContain('~');
 
 			// Should be absolute paths
-			expect(openCodePath?.startsWith('/') || openCodePath?.match(/^[A-Z]:\\/)).toBeTruthy();
-			expect(factoryPath?.startsWith('/') || factoryPath?.match(/^[A-Z]:\\/)).toBeTruthy();
+			expect(path.isAbsolute(openCodePath!)).toBeTruthy();
+			expect(path.isAbsolute(factoryPath!)).toBeTruthy();
 		});
 
 		it('should handle all pagination options correctly without sshConfig', async () => {
