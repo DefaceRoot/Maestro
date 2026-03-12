@@ -302,6 +302,7 @@ export function detectNodeVersionManagerBinPaths(): string[] {
 export function buildExpandedPath(customPaths?: string[]): string {
 	const delimiter = path.delimiter;
 	const home = os.homedir();
+	const versionManagerPaths = detectNodeVersionManagerBinPaths();
 
 	// Start with current PATH
 	const currentPath = process.env.PATH || '';
@@ -370,6 +371,7 @@ export function buildExpandedPath(customPaths?: string[]): string {
 	} else {
 		// Unix-like paths (macOS/Linux)
 		additionalPaths = [
+			...versionManagerPaths,
 			'/opt/homebrew/bin', // Homebrew on Apple Silicon
 			'/opt/homebrew/sbin',
 			'/usr/local/bin', // Homebrew on Intel, common install location
@@ -388,7 +390,8 @@ export function buildExpandedPath(customPaths?: string[]): string {
 
 	// Add custom paths first (if provided)
 	if (customPaths && customPaths.length > 0) {
-		for (const p of customPaths) {
+		for (let i = customPaths.length - 1; i >= 0; i--) {
+			const p = customPaths[i];
 			if (!pathParts.includes(p)) {
 				pathParts.unshift(p);
 			}
@@ -396,7 +399,8 @@ export function buildExpandedPath(customPaths?: string[]): string {
 	}
 
 	// Add standard additional paths
-	for (const p of additionalPaths) {
+	for (let i = additionalPaths.length - 1; i >= 0; i--) {
+		const p = additionalPaths[i];
 		if (!pathParts.includes(p)) {
 			pathParts.unshift(p);
 		}
