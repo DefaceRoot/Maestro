@@ -3,6 +3,7 @@ import { X, GitBranch, FolderOpen, Plus, Loader2, AlertTriangle, Server } from '
 import type { Theme, Session, GhCliStatus } from '../types';
 import { useLayerStack } from '../contexts/LayerStackContext';
 import { MODAL_PRIORITIES } from '../constants/modalPriorities';
+import { getParentDir } from '../../shared/formatters';
 
 interface WorktreeConfigModalProps {
 	isOpen: boolean;
@@ -13,12 +14,6 @@ interface WorktreeConfigModalProps {
 	onSaveConfig: (config: { basePath: string; watchEnabled: boolean }) => void;
 	onCreateWorktree: (branchName: string, basePath: string) => void;
 	onDisableConfig: () => void;
-}
-
-/** Get parent directory from a path (works with both / and \ separators) */
-function getParentDir(path: string): string {
-	const parent = path.replace(/[/\\][^/\\]+$/, '');
-	return parent || path; // keep original if we're already at root
 }
 
 /**
