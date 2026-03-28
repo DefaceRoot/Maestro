@@ -17,7 +17,7 @@ import { powerManager as powerManagerInstance } from '../power-manager';
  * If the renderer doesn't respond within this time (e.g., window already closing,
  * renderer crashed), force-quit to prevent the app from lingering in the background.
  */
-const QUIT_CONFIRMATION_TIMEOUT_MS = 3000;
+const QUIT_CONFIRMATION_TIMEOUT_MS = 5000;
 
 /** Dependencies for quit handler */
 export interface QuitHandlerDependencies {
