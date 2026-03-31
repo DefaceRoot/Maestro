@@ -57,3 +57,9 @@ yarn-error.log*
 .vscode/
 .VSCodeCounter
 .qodo
+
+.ssh.json
+.omp/*
+!.omp/sessions/
+!.omp/sessions/plans/
+!.omp/sessions/plans/**
