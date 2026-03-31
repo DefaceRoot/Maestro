@@ -1,0 +1,43 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase3",
+  "run_timestamp": "20260331-025914Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 5,
+    "covered": 3,
+    "partial": 2,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 4,
+    "validated": 1,
+    "unvalidated": 3
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": true,
+    "rollback_ready": true,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 3-A's concrete OMP tile edit does not match the current wizard tile contract and misses the keyboard-navigation update required by a seventh tile.",
+      "evidence": "plan.md:893-902 proposes { id, name, description, icon, requiresSetup, setupUrl }. src/renderer/components/Wizard/screens/AgentSelectionScreen.tsx:31-36 defines AgentTile as { id, name, supported, description, brandColor? }. src/renderer/components/Wizard/screens/AgentSelectionScreen.tsx:91-93 hardcodes GRID_ROWS = 2, and lines 599-603 bound ArrowDown navigation by GRID_ROWS.",
+      "impact": "Implementing the plan literally will not match the current tile contract and would leave the added tile outside the declared keyboard-navigation grid.",
+      "recommended_fix": "Rewrite Unit 3-A so the OMP tile uses the real AgentTile fields (supported, optional brandColor) and explicitly updates grid navigation to handle seven tiles, ideally by deriving row count from AGENT_TILES.length."
+    },
+    {
+      "id": "F-002",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "Unit 3-B's proposed OMP command list does not match OMP's actual slash-command sources.",
+      "evidence": "plan.md:922-930 lists /plan, /plan-new, /compact, /mcp, /thinking, /background, /commit, /worktree, and /role. packages/coding-agent/src/slash-commands/builtin-registry.ts contains /plan (104-109), /mcp (435-463), /compact (500-508), and /background (550-554), but no builtin entries for plan-new, thinking, commit, worktree, or role. Supplemental evidence: agent/commands/plan-new.md:8-15 defines /plan-new as a file-based command, agent/extensions/implementation-engine/index.ts:3276-3278 registers /worktree, packages/coding-agent/CHANGELOG.md:5420 records /thinking being replaced by /settings, and packages/coding-agent/src/cli.ts:48-50 exposes commit as a CLI subcommand rather than a builtin slash command.",
+      "impact": "Maestro would advertise commands that are not backed by the builtin registry the plan cites, producing incorrect autocomplete and misleading integration work.",
+      "recommended_fix": "Replace Unit 3-B's command inventory with commands from the actual OMP discovery path Maestro will use, and distinguish builtin-registry commands from file-based or extension-registered commands."
+    }
+  ]
+}

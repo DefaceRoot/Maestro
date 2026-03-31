@@ -1,0 +1,43 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase5",
+  "run_timestamp": "20260331-025914Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 5,
+    "covered": 3,
+    "partial": 2,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 3,
+    "validated": 2,
+    "unvalidated": 1
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": false,
+    "rollback_ready": true,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "TESTABILITY_GAP",
+      "severity": "BLOCKING",
+      "summary": "The proposed omp-rpc-spawner test plan omits the automatic get_state handshake required on ready.",
+      "evidence": "Unit 2 requires the spawner to send { \"type\": \"get_state\" } after ready so Maestro can obtain session ID and context window (plan.md:72-77, 775-778, 794). Unit 5-B's proposed cases cover ready, generic command writes, queued-command flush, extension_ui_request auto-response, and kill-on-close, but not get_state (plan.md:1059-1064). OMP defines get_state as a dedicated RPC command and response (oh-my-pi/packages/coding-agent/src/modes/rpc/rpc-types.ts:27, 102; rpc-mode.ts:483-499).",
+      "impact": "A regression in the ready-handshake stdin path can break session/context initialization while every planned spawner test still passes.",
+      "recommended_fix": "Add explicit get_state coverage to the new spawner test, ideally asserting the automatic stdin write after ready and a matching mock response path."
+    },
+    {
+      "id": "F-002",
+      "category": "SCOPE_AMBIGUITY",
+      "severity": "NON_BLOCKING",
+      "summary": "The useInlineWizard test row names a wizard tile assertion, but the current file actually hard-codes the wizard-capable agent list.",
+      "evidence": "Codebase Context describes src/__tests__/renderer/hooks/useInlineWizard.test.ts as a file that references the agent list (plan.md:44). Unit 5-B later calls it an 'OMP wizard tile' update (plan.md:1055). The test itself gates wizard support with ['claude-code', 'codex', 'opencode'].includes(agentId) (src/__tests__/renderer/hooks/useInlineWizard.test.ts:17-18).",
+      "impact": "The wording can send an implementer to the wrong assertion surface and make the file update less direct than it should be.",
+      "recommended_fix": "Rewrite the Unit 5-B row to describe adding OMP to the mocked supportsWizard / wizard-capable agent list."
+    }
+  ]
+}

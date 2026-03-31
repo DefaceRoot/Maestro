@@ -1,0 +1,70 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase1",
+  "run_timestamp": "20260331-025914Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 5,
+    "covered": 3,
+    "partial": 2,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 5,
+    "validated": 2,
+    "unvalidated": 3
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": false,
+    "rollback_ready": false,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 1-C’s OMP error-pattern registration example does not match Maestro’s live error-pattern contract.",
+      "evidence": "The plan uses `registerErrorPatterns('omp', { auth_expired: [ /authentication.*failed/i, ... ] })` at plan.md:494-519. Live Maestro initializes production patterns in `patternRegistry` (`src/main/parsers/error-patterns.ts:862-867`), documents `registerErrorPatterns(...)` as test-only (`src/main/parsers/error-patterns.ts:964-971`), and matches `pattern.pattern` fields in `matchErrorPattern(...)` (`src/main/parsers/error-patterns.ts:903-931`).",
+      "impact": "Implementers following the plan literally will either fail type-checking or register OMP patterns in a way that diverges from the production parser subsystem contract.",
+      "recommended_fix": "Replace the sample with a concrete `OMP_ERROR_PATTERNS: AgentErrorPatterns` object using `{ pattern, message, recoverable }` entries and add it to the static `patternRegistry` initialization in `error-patterns.ts`."
+    },
+    {
+      "id": "F-002",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 1-C’s parser sketch mismatches live parser function signatures and OMP `get_session_stats` response shape.",
+      "evidence": "The plan calls `matchErrorPattern(line, getErrorPatterns('omp'))` at plan.md:461-462, but the live signature is `matchErrorPattern(patterns, line)` (`src/main/parsers/error-patterns.ts:903-906`). The plan also extracts `data.inputTokens`, `data.outputTokens`, and `data.contextWindow` at plan.md:444-448, while live OMP `SessionStats` exposes nested `tokens.input`, `tokens.output`, `tokens.cacheRead`, and `tokens.cacheWrite` (`packages/coding-agent/src/session/agent-session.ts:317-326,5842-5906`).",
+      "impact": "The planned parser implementation would either fail to compile or silently report incorrect usage information, leaving Maestro’s OMP integration misleading even if registration succeeds.",
+      "recommended_fix": "Update the parser sketch to call `matchErrorPattern(getErrorPatterns('omp'), line)`, implement the full `detectErrorFromExit(exitCode, stderr, stdout)` signature, and map `get_session_stats.data.tokens.*` while keeping context-window extraction on `get_state.model.contextWindow`."
+    },
+    {
+      "id": "F-003",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 1-D’s session-storage sketch does not match Maestro’s live storage and remote-fs contracts.",
+      "evidence": "The plan treats `readDirRemote`/`readFileRemote`/`statRemote` as raw arrays and objects at plan.md:597-611,701-703, but the live helpers return `RemoteFsResult<T>` wrappers (`src/main/utils/remote-fs.ts:209-345`) and existing storages check `result.success`/`result.data` before use (`src/main/storage/codex-session-storage.ts:541-571,606-614,903-909`). The plan also builds `AgentSessionInfo` with fields like `title`, `createdAt`, and `filePath` at plan.md:607-612, even though the live interface requires `timestamp`, `modifiedAt`, `firstMessage`, `messageCount`, `sizeBytes`, token counts, and duration fields (`src/main/agents/session-storage.ts:45-82`). Finally, the plan returns `{ messages, hasMore: false }` from `readSessionMessages`, but the live result shape includes `total`, and reference implementations use `BaseSessionStorage.applyMessagePagination(...)` (`src/main/storage/codex-session-storage.ts:947-955,1105-1109`).",
+      "impact": "Implementers following the sketch cannot land a compiling, contract-correct storage implementation, and SSH-backed session browsing would be especially error-prone.",
+      "recommended_fix": "Rewrite the sketch against the live `AgentSessionInfo`, `SessionMessagesResult`, and `RemoteFsResult` contracts, using `CodexSessionStorage` or `ClaudeSessionStorage` as the structural template instead of the current pseudocode."
+    },
+    {
+      "id": "F-004",
+      "category": "ASSUMPTION_RISK",
+      "severity": "NON_BLOCKING",
+      "summary": "Unit 1-D correctly flags path-encoding verification as necessary, but the placeholder encoding is materially different from OMP’s live algorithm.",
+      "evidence": "The placeholder helper uses `projectPath.replace(/\\//g, '-').replace(/^-/, '')` at plan.md:692-696. Live OMP session directories use separate home-relative, temp-root, and legacy-absolute encodings in `getDefaultSessionDirName(...)` (`packages/coding-agent/src/session/session-manager.ts:402-421`).",
+      "impact": "If an implementer copies the placeholder without replacing it, `listSessions()` and `getSessionPath()` will miss sessions for many valid project roots, especially symlinked home paths and temp-root projects.",
+      "recommended_fix": "Keep the verification note, but replace the placeholder helper in the plan with the real encoding rules or an explicit reference to the exact OMP helper to mirror."
+    },
+    {
+      "id": "F-005",
+      "category": "TESTABILITY_GAP",
+      "severity": "NON_BLOCKING",
+      "summary": "Phase 1 acceptance checks are too narrow to catch the current 1-C and 1-D contract bugs.",
+      "evidence": "Unit 1-C acceptance stops at `getErrorPatterns('omp')` being non-empty and the completeness gate passing (`plan.md:534-535`). Unit 1-D acceptance stops at `getSessionStorage('omp')` returning an instance and the same completeness gate passing (`plan.md:740`). The completeness test only checks parser/storage presence, not parser usage mapping or session storage list/read/path correctness (`src/__tests__/main/agents/agent-completeness.test.ts:93-116`).",
+      "impact": "Phase 1 could appear complete while OMP usage stats remain wrong and the session browser fails to locate or parse OMP sessions.",
+      "recommended_fix": "Add targeted tests for `OmpOutputParser.extractUsage()` on `get_state` and `get_session_stats`, plus `OmpSessionStorage.listSessions()`, `readSessionMessages()`, and `getSessionPath()` using representative local and SSH-aware fixtures."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase2",
+  "run_timestamp": "20260331-025914Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 9,
+    "covered": 7,
+    "partial": 1,
+    "missing": 1
+  },
+  "assumptions": {
+    "total": 7,
+    "validated": 3,
+    "unvalidated": 4
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": false,
+    "rollback_ready": false,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 2-C is anchored to the wrong useInputProcessing control path.",
+      "evidence": "The plan says useInputProcessing currently calls window.maestro.process.spawn(...) for every message and proposes the OMP branch before that path (plan.md:840-848). In the current code, batch-mode agents use spawn (src/renderer/hooks/input/useInputProcessing.ts:852-855, 985-995) while existing live processes use window.maestro.process.write(...) (useInputProcessing.ts:1107-1109).",
+      "impact": "Implementers can patch the wrong branch and fail to align OMP with Maestro's existing live-process input model.",
+      "recommended_fix": "Rewrite Unit 2-C so OMP routing is planned relative to the existing live-process branch in useInputProcessing.ts, with explicit handling for first-prompt versus subsequent-command behavior."
+    },
+    {
+      "id": "F-002",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "Abort and compaction work is planned against the wrong renderer surfaces.",
+      "evidence": "The plan places abort and compact guidance in Unit 2-C (plan.md:858-869). Current interrupt handling is centralized in src/renderer/hooks/agent/useInterruptHandler.ts:58-77. Current compaction is the summarize workflow exposed through src/renderer/hooks/agent/useSummarizeAndContinue.ts:338-448, src/renderer/components/InputArea.tsx:1121-1128, and src/renderer/components/QuickActionsModal.tsx:724-730.",
+      "impact": "Following the plan leaves the primary interrupt and compaction entry points unchanged and creates inconsistent control flow for OMP tabs.",
+      "recommended_fix": "Move abort planning into useInterruptHandler.ts, then explicitly decide whether OMP compact replaces or augments the current summarize workflow and update the relevant UI files in the plan."
+    },
+    {
+      "id": "F-003",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "The renderer does not currently receive raw init/system events for OMP ready handling.",
+      "evidence": "Unit 2-C expects useAgentListeners to react to init and system events (plan.md:854-856). The current process preload/global contracts expose typed listeners such as onData, onExit, onSessionId, onThinkingChunk, onToolExecution, onSshRemote, onUsage, and onAgentError, but no generic parsed-event or system-event subscription (src/main/preload/process.ts:184-250, 440-450; src/renderer/global.d.ts:284-326). StdoutHandler emits derived events like usage, session-id, slash-commands, thinking-chunk, and tool-execution, not a raw system channel (src/main/process-manager/handlers/StdoutHandler.ts:266-316, 321-392).",
+      "impact": "OMP ready-state behavior is not directly implementable; the renderer will never see the expected event shape without additional main/preload IPC work.",
+      "recommended_fix": "Revise the plan to either map OMP ready/state onto existing session-id/usage channels or add a new explicit IPC event and include its preload/global typings in Unit 2-B."
+    },
+    {
+      "id": "F-004",
+      "category": "ASSUMPTION_RISK",
+      "severity": "BLOCKING",
+      "summary": "Tab-close cleanup is not already wired through process.kill.",
+      "evidence": "The plan says tab close is already handled via the existing window.maestro.process.kill path and needs no renderer change (plan.md:872). Current desktop tab close uses closeTab(...) in src/renderer/hooks/tabs/useTabHandlers.ts:629-666, and remote tab close also only calls closeTab(...) in src/renderer/hooks/remote/useRemoteIntegration.ts:313-321. Neither path calls window.maestro.process.kill(...).",
+      "impact": "A persistent OMP RPC process can survive after its tab is closed, causing leaked processes and broken tab-to-process ownership.",
+      "recommended_fix": "Add explicit tab-close cleanup that calls window.maestro.process.kill(...) for the tab-scoped OMP process and reflect that work in Unit 2-A/2-C."
+    }
+  ]
+}

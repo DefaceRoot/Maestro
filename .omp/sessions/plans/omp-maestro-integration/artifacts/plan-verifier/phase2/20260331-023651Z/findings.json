@@ -1,0 +1,61 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase2",
+  "run_timestamp": "20260331-023651Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 6,
+    "covered": 2,
+    "partial": 1,
+    "missing": 3
+  },
+  "assumptions": {
+    "total": 5,
+    "validated": 2,
+    "unvalidated": 3
+  },
+  "readiness": {
+    "ordering_ready": false,
+    "test_strategy_ready": false,
+    "rollback_ready": false,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "TRACEABILITY_GAP",
+      "severity": "BLOCKING",
+      "summary": "The planned renderer API for sending OMP stdin commands does not match Maestro's existing preload contract.",
+      "evidence": "The plan targets src/main/preload/index.ts and src/renderer/global.d.ts and uses window.maestro.sendAgentStdinCommand(...) (plan.md:706-730, 742-748, 766, 773). The current preload surface exposes process methods under window.maestro.process via createProcessApi() (src/main/preload/index.ts:56-67, src/main/preload/process.ts:135-158), and global.d.ts declares those methods under MaestroAPI.process (src/renderer/global.d.ts:257-262).",
+      "impact": "An implementation that follows the plan will modify the wrong API surface and land inconsistent renderer typings and call sites.",
+      "recommended_fix": "Move the new stdin command method into src/main/preload/process.ts, expose it as window.maestro.process.sendAgentStdinCommand(...), declare it inside MaestroAPI.process in src/renderer/global.d.ts, and update the plan examples and acceptance text to match."
+    },
+    {
+      "id": "F-002",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "Unit 2-C depends on renderer-visible init/system parser events that the current Maestro event pipeline does not emit.",
+      "evidence": "The plan expects useAgentListeners.ts to handle init ParsedEvents and system text 'OMP ready' (plan.md:758-760). ParsedEvent only exposes contextWindow inside usage, not as a top-level init property (src/main/parsers/agent-output-parser.ts:49-91). StdoutHandler emits usage, session-id, thinking-chunk, tool-execution, and final result data, but not generic init/system events to the renderer (src/main/process-manager/handlers/StdoutHandler.ts:297-309, 336, 397-401, 462-487).",
+      "impact": "The stated ready gate and context-window/session updates cannot be implemented as written; the plan either will not compile or will never drive the renderer state it describes.",
+      "recommended_fix": "Revise the phase to either add explicit main-to-renderer IPC events for OMP ready/init state or retarget the renderer integration to existing session-id and usage events, with any missing ready-state signal added explicitly."
+    },
+    {
+      "id": "F-003",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "The phase does not map per-tab abort and cleanup behavior to the actual renderer control points that currently own them.",
+      "evidence": "The plan says tab close should kill the OMP process for that tab and the abort button should send { type: 'abort' } (plan.md:676-678, 762-767). In the current code, tab close only performs renderer state updates through performTabClose -> closeTab (src/renderer/hooks/tabs/useTabHandlers.ts:629-666, src/renderer/utils/tabHelpers.ts:394-493). The active interrupt path always calls window.maestro.process.interrupt(targetSessionId) with fallback kill (src/renderer/hooks/agent/useInterruptHandler.ts:63-77, 229-231).",
+      "impact": "OMP tabs can leak persistent processes on close, and the existing abort button will continue to send SIGINT/kill semantics instead of the OMP RPC abort command.",
+      "recommended_fix": "Expand Phase 2 to explicitly cover the real control points: add per-tab process teardown to tab-close/session-close flows, update useInterruptHandler.ts and mirrored remote interrupt logic to branch OMP tabs to sendAgentStdinCommand({ type: 'abort' }), and specify how the correct per-tab process is identified."
+    },
+    {
+      "id": "F-004",
+      "category": "ASSUMPTION_RISK",
+      "severity": "NON_BLOCKING",
+      "summary": "Silently ignoring extension_ui_request may stall extension-driven OMP turns.",
+      "evidence": "The plan says Phase 2 ignores extension_ui_request (plan.md:974). In OMP RPC mode, dialog-style extension UI requests are stored in pendingRequests and emitted as extension_ui_request until the client responds (oh-my-pi packages/coding-agent/src/modes/rpc/rpc-mode.ts:78-118, 267-286).",
+      "impact": "Base prompt/response flows can still work, but extension-triggered interactions may appear hung if Maestro never answers the request.",
+      "recommended_fix": "Either constrain Phase 2 acceptance to non-extension scenarios or add a minimal response policy so blocking extension UI requests fail closed instead of waiting indefinitely."
+    }
+  ]
+}

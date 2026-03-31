@@ -1,0 +1,43 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase2",
+  "run_timestamp": "20260331-031726Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 4,
+    "covered": 2,
+    "partial": 2,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 4,
+    "validated": 2,
+    "unvalidated": 2
+  },
+  "readiness": {
+    "ordering_ready": false,
+    "test_strategy_ready": false,
+    "rollback_ready": false,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 2-C example code still does not match Maestro's current renderer state model.",
+      "evidence": "Unit 2-C uses activeAgent?.id, activeTabId, processedText, JSX <QuickAction ... />, and closingTab?.agentId / closingTab.sessionId (plan.md:837-872, 886-887). The current implementation surfaces are different: useInputProcessing.ts branches on activeSession.toolType and currently writes to a live process via window.maestro.process.write(...) (useInputProcessing.ts:855, 862, 1109); useInterruptHandler.ts derives targetSessionId from activeSession.id and activeTab.id (useInterruptHandler.ts:63-77); QuickActionsModal.tsx builds mainActions: QuickAction[] data objects rather than rendering a <QuickAction> component inline (QuickActionsModal.tsx:16-22, 351, 721-730); and AITab has agentSessionId but no agentId or sessionId field while Session owns toolType (src/renderer/types/index.ts:403-405, 505-509).",
+      "impact": "An implementer cannot apply Unit 2-C directly without re-deriving the real state model and UI structure from source, so the phase is still not implementation-ready.",
+      "recommended_fix": "Rewrite the Unit 2-C snippets against the actual file-local contracts: use activeSession.toolType/current-tab state in useInputProcessing.ts, use the existing targetSessionId derivation pattern in useInterruptHandler.ts, add a QuickAction object into mainActions in QuickActionsModal.tsx, and express tab-close cleanup in terms of real Session/AITab fields."
+    },
+    {
+      "id": "F-002",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "The tab-close teardown path is not wired to the new OMP process lifecycle introduced in Unit 2-A.",
+      "evidence": "Unit 2-A defines private ompProcesses = new Map<string, OmpRpcProcess>() and killOmpProcess(tabId) (plan.md:765-781). Unit 2-B adds only sendStdinCommand IPC (plan.md:795-817). Unit 2-C closes tabs via window.maestro.process.kill(closingTab.sessionId) (plan.md:886-887). In the current codebase, window.maestro.process.kill(...) invokes process:kill with a session ID (src/main/preload/process.ts:156-158), that handler delegates to ProcessManager.kill(sessionId) (src/main/ipc/handlers/process.ts:597-606), and ProcessManager.kill(sessionId) operates on this.processes, not a new tabId-keyed side map (src/main/process-manager/ProcessManager.ts:197-224).",
+      "impact": "The 2-A -> 2-B -> 2-C dependency chain remains incomplete for teardown. Implementers can end up with leaked OMP processes or duplicate lifecycle code.",
+      "recommended_fix": "Choose a single cleanup contract and encode it explicitly in the plan: either expose a dedicated tabId-based kill IPC that calls killOmpProcess(tabId), or state that OMP processes are also registered in the standard processes map under a deterministic session ID and rewrite Unit 2-C to use that exact ID composition."
+    }
+  ]
+}

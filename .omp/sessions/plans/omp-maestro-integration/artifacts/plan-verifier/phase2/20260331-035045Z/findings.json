@@ -1,0 +1,34 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase2",
+  "run_timestamp": "20260331-035045Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 5,
+    "covered": 4,
+    "partial": 0,
+    "missing": 1
+  },
+  "assumptions": {
+    "total": 2,
+    "validated": 1,
+    "unvalidated": 1
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": true,
+    "rollback_ready": true,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Phase 2 still contains lingering `tabId` references outside the Unit 2-C compaction snippet.",
+      "evidence": "`plan.md:787` defines `tabId: string;` in the `OmpRpcProcess` interface; `plan.md:801` describes the composite key as `${maestroSessionId}-ai-${tabId}`; `plan.md:855` repeats that form in the Unit 2-B acceptance text; and `plan.md:868` repeats it again in Unit 2-C tab-close cleanup guidance.",
+      "impact": "The plan still mixes `tabId` terminology with `targetSessionId`, so an implementer can reasonably propagate the stale identifier into Phase 2 work or miss that the integration boundary is supposed to key everything by `targetSessionId`.",
+      "recommended_fix": "Replace the remaining Phase 2 `tabId` references with `targetSessionId`-centered language. Where the constituent tab component truly matters, explain it as the tab portion of `targetSessionId` rather than reintroducing `tabId` as the operative identifier."
+    }
+  ]
+}

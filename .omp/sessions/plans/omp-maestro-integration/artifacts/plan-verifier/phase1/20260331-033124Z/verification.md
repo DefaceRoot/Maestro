@@ -1,0 +1,45 @@
+# Verification Summary
+- Plan path: `/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md`
+- Phase key: `phase1`
+- Run timestamp: `20260331-033124Z`
+- Verdict: `PASS`
+
+## Scope
+- Evaluated the current Phase 1 plan text for the remaining Unit 1-D storage-sketch blocker from the prior verification round.
+- Re-checked the specific storage-sketch contract points requested: SSH/local branching in `listSessions()` and `readSessionMessages()`, local `fs` usage in non-SSH paths, removal of the unsupported `readFileRemote(..., { maxBytes: 8192 })` call shape, and exact two-argument remote-helper usage in SSH branches.
+- Re-confirmed Units 1-A, 1-B, and 1-C remain covered after the Unit 1-D plan edits.
+- Explicitly excluded implementation code changes, runtime behavior, later plan phases, and unrelated storage-sketch issues outside the requested blocker scope.
+
+## Requirement Traceability
+
+| Requirement | Planned work and acceptance | Status | Evidence |
+|---|---|---|---|
+| Unit 1-A must still confine OMP identity registration to the shared identity surfaces and keep context-window handling dynamic | Plan adds `omp` to `agentIds.ts` and `agentMetadata.ts`, and keeps `agentConstants.ts` to comment-only guidance for dynamic context-window reporting | COVERED | Unit 1-A still targets only `src/shared/agentIds.ts`, `src/shared/agentMetadata.ts`, and `src/shared/agentConstants.ts` (`plan.md:155-160`). The plan still keeps OMP intentionally absent from `DEFAULT_CONTEXT_WINDOWS` and documents runtime reporting via RPC (`plan.md:183-190`), which remains aligned with the live shared constants surface in `src/shared/agentConstants.ts:9-32`. |
+| Unit 1-B must still fit Maestro’s agent-definition and capability contracts | Plan adds one `AGENT_DEFINITIONS` entry and one OMP capability record matching Maestro’s agent surfaces | COVERED | Unit 1-B still touches only `definitions.ts` and `capabilities.ts`, and the proposed OMP definition/capability entries remain intact (`plan.md:196-266`). Those shapes still match the live agent-definition and capability contracts in `src/main/agents/definitions.ts:12-95` and `src/main/agents/capabilities.ts:14-79`. |
+| Unit 1-C must still preserve the corrected parser and error-pattern guidance from the previous round | Plan should keep static `OMP_ERROR_PATTERNS` registration, `matchErrorPattern(getErrorPatterns('omp'), line)`, nested `get_session_stats.data.tokens.*` mapping, and parser registration | COVERED | The parser sketch still calls `matchErrorPattern(getErrorPatterns('omp'), line)` (`plan.md:441-443`), still maps nested `data.tokens.*` counters (`plan.md:419-429`), still defines `OMP_ERROR_PATTERNS` for static registry insertion (`plan.md:472-502`), and still registers `new OmpOutputParser()` (`plan.md:504-510`). These remain aligned with the live parser contracts in `src/main/parsers/error-patterns.ts:862-972` and `src/main/parsers/index.ts:79-84`. |
+| Unit 1-D `listSessions()` must branch on `if (sshConfig)` before calling remote helpers and use local `fs` APIs otherwise | SSH path should call `readDirRemote`, `readFileRemote`, and `statRemote`; non-SSH path should use `fs.readdir`, `fs.readFile`, and `fs.stat` | COVERED | The current storage sketch now branches on `if (sshConfig)` inside `listSessions()` before each remote-helper use (`plan.md:565-612`). The SSH branch calls `readDirRemote(sessionDir, sshConfig)`, `readFileRemote(filePath, sshConfig)`, and `statRemote(filePath, sshConfig)` (`plan.md:575,591,605`), while the non-SSH branch uses `fs.readdir`, `fs.readFile`, and `fs.stat` (`plan.md:580,595,611`). This now mirrors the live local/SSH split used by Maestro’s storage implementations and remote-fs contracts (`src/main/storage/codex-session-storage.ts:803-805,942-958,1121-1130`; `src/main/utils/remote-fs.ts:209-345`). |
+| Unit 1-D `readSessionMessages()` must branch on `if (sshConfig)` and use local `fs.readFile` otherwise | SSH path should call `readFileRemote(filePath, sshConfig)`; non-SSH path should call `fs.readFile(filePath, 'utf-8')` | COVERED | The current `readSessionMessages()` sketch now branches on `if (sshConfig)` before reading the file (`plan.md:642-658`). The SSH branch uses `readFileRemote(filePath, sshConfig)` (`plan.md:653`), and the local branch uses `await fs.readFile(filePath, 'utf-8')` (`plan.md:657`). |
+| Unit 1-D must no longer pass `{ maxBytes: 8192 }` or any other unsupported third argument to `readFileRemote` | Every planned `readFileRemote` call in the storage sketch should use the live two-argument form | COVERED | The current plan contains no `maxBytes` residue and no `readFileRemote(..., sshConfig, ...)` call shape. The only planned `readFileRemote` invocations in the storage sketch are `readFileRemote(filePath, sshConfig)` at `plan.md:591` and `plan.md:653`. This now matches the live helper signature in `src/main/utils/remote-fs.ts:306-333`. |
+| Unit 1-D remote-helper calls in the SSH path must use exactly `(path, sshConfig)` | `readDirRemote`, `readFileRemote`, and `statRemote` should be shown only with the concrete SSH config and no extra arguments | COVERED | The current SSH-branch helper calls are `readDirRemote(sessionDir, sshConfig)`, `readFileRemote(filePath, sshConfig)`, `statRemote(filePath, sshConfig)`, and `readFileRemote(filePath, sshConfig)` (`plan.md:575,591,605,653`). No three-argument remote-helper calls remain. That is contract-correct with the live helper APIs in `src/main/utils/remote-fs.ts:209-345`. |
+
+## Assumption Audit
+
+| Assumption | Owner | Evidence status | Failure impact and mitigation |
+|---|---|---|---|
+| OMP should stay out of `DEFAULT_CONTEXT_WINDOWS` because context-window data arrives dynamically from RPC `get_state` | Unit 1-A | VALIDATED | The plan still documents comment-only guidance in `agentConstants.ts` rather than a static OMP fallback entry (`plan.md:183-187`). If this assumption were false, Maestro could display misleading context limits; mitigation is to keep dynamic reporting as the source of truth. |
+| OMP’s definition and capability footprint still matches Maestro’s existing agent registration surfaces without additional contract changes | Unit 1-B | VALIDATED | The plan’s OMP definition and capability examples still fit the current agent-definition and capability types (`plan.md:198-266`; `src/main/agents/definitions.ts:12-95`; `src/main/agents/capabilities.ts:14-79`). If this assumption drifted, implementation would break at the registration layer; mitigation is to keep the plan anchored to those live interfaces. |
+| The corrected Unit 1-C parser guidance still reflects Maestro’s live parser contracts | Unit 1-C | VALIDATED | The plan still preserves static error-pattern registration, patterns-first `matchErrorPattern(...)`, nested token-field mapping, and parser registration (`plan.md:419-443,472-510`). If this assumption regressed, implementers would reintroduce parser contract bugs; mitigation is to retain those exact plan examples. |
+| The Codex-style storage sketch for OMP must explicitly split SSH and local file access and use the live remote-helper arity | Unit 1-D | VALIDATED | The plan now shows explicit `if (sshConfig)` branching with local `fs` fallbacks and only two-argument remote-helper calls (`plan.md:565-658`). This matches the live remote-fs helper signatures and Codex storage branching pattern (`src/main/utils/remote-fs.ts:209-345`; `src/main/storage/codex-session-storage.ts:803-805,942-958,1121-1130`). If this assumption were violated, the plan would again instruct implementers toward non-contract-correct storage code; mitigation is to keep the current SSH/local split and helper call shapes unchanged. |
+
+## Implementation Readiness
+- Execution ordering/dependency readiness: Ready. Phase 1’s file split remains disjoint across Units 1-A through 1-D, so the plan still supports independent implementation in parallel.
+- Test strategy readiness: Ready for the requested storage-sketch re-check. The plan text now exposes the SSH/local branches and helper call shapes directly enough to validate them against live Maestro contracts.
+- Rollback/failure-path readiness: Ready within the requested scope. The Unit 1-D change is plan-text clarification that removes a misleading API example without introducing new cross-unit dependencies.
+- Integration boundary readiness: Ready for the requested blocker scope. The remaining Round 3 Unit 1-D remote-fs contract mismatch has been corrected in the plan text, and Units 1-A through 1-C remain aligned with the live shared/parser registration surfaces.
+
+## Findings
+- No findings.
+
+## Decision
+- Final verdict: `PASS`
+- Rationale: The current Unit 1-D storage sketch now branches correctly between SSH and local filesystem access, uses local `fs` APIs in non-SSH paths, removes the unsupported `readFileRemote(..., { maxBytes: 8192 })` form, and limits SSH helper calls to the live two-argument signatures. Units 1-A, 1-B, and 1-C remain covered with no regression from the storage-sketch edits.

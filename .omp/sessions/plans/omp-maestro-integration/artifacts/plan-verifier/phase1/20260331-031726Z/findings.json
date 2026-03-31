@@ -1,0 +1,34 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase1",
+  "run_timestamp": "20260331-031726Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 9,
+    "covered": 8,
+    "partial": 1,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 4,
+    "validated": 3,
+    "unvalidated": 1
+  },
+  "readiness": {
+    "ordering_ready": true,
+    "test_strategy_ready": true,
+    "rollback_ready": true,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 1-D’s storage sketch still misuses Maestro’s remote-fs helper APIs.",
+      "evidence": "The plan calls `readDirRemote(sessionDir, sshConfig)` at plan.md:570, `readFileRemote(filePath, sshConfig, { maxBytes: 8192 })` at plan.md:578, `statRemote(filePath, sshConfig)` at plan.md:584, and `readFileRemote(filePath, sshConfig)` at plan.md:622 even though `sshConfig` is optional in the enclosing methods. Live Maestro defines `readDirRemote`, `readFileRemote`, and `statRemote` with required `SshRemoteConfig` parameters and no `{ maxBytes }` overload (`src/main/utils/remote-fs.ts:209-345`). The reference `CodexSessionStorage` branches on `if (sshConfig)` before using remote helpers and falls back to local `fs` APIs otherwise (`src/main/storage/codex-session-storage.ts:803-805,942-958,1121-1130`).",
+      "impact": "An implementer following the plan literally will still produce a storage sketch that is not contract-correct for local vs SSH execution and may not type-check because the sample invokes `readFileRemote(...)` with an unsupported third argument.",
+      "recommended_fix": "Rewrite the Unit 1-D sketch to mirror the Codex storage pattern: branch on `if (sshConfig)` before calling remote helpers, use local `fs` APIs when `sshConfig` is absent, and remove the unsupported `{ maxBytes: 8192 }` argument from `readFileRemote(...)`."
+    }
+  ]
+}

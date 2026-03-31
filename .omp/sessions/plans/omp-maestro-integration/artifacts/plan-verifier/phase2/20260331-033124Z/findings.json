@@ -1,0 +1,43 @@
+{
+  "plan_file": "/home/cbee/Repos/Maestro/.omp/sessions/plans/omp-maestro-integration/plan.md",
+  "phase_key": "phase2",
+  "run_timestamp": "20260331-033124Z",
+  "verdict": "BLOCKED",
+  "traceability": {
+    "total_requirements": 8,
+    "covered": 4,
+    "partial": 4,
+    "missing": 0
+  },
+  "assumptions": {
+    "total": 4,
+    "validated": 1,
+    "unvalidated": 3
+  },
+  "readiness": {
+    "ordering_ready": false,
+    "test_strategy_ready": false,
+    "rollback_ready": false,
+    "integration_ready": false
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "READINESS_GAP",
+      "severity": "BLOCKING",
+      "summary": "Unit 2-C still uses non-existent renderer locals and the wrong QuickAction object shape.",
+      "evidence": "The input snippet now uses the right branch anchor and ID pattern, but it still sends message: processedText and assumes activeTab is the live-process local (plan.md:873-879). In the current hook, the send path works with capturedInputValue and the local activeTabForSpawn around the targetSessionId derivation (src/renderer/hooks/input/useInputProcessing.ts:818-821, 846-850, 1107-1109). The quick-action snippet now uses a data-object spread, but the object fields are still wrong for this file: the plan shows description, onSelect, and onClose() with no id (plan.md:909-916), while the actual QuickAction interface is { id, label, action, subtext?, shortcut? } (src/renderer/components/QuickActionsModal.tsx:16-22) and actions are assembled as const mainActions: QuickAction[] = [...] (QuickActionsModal.tsx:351).",
+      "impact": "An implementer still has to re-derive the real renderer contracts from source before they can apply Unit 2-C, so the phase is not implementation-ready.",
+      "recommended_fix": "Rewrite the Unit 2-C snippets against the exact live-process locals and modal action contract already present in the target files: use the real input variable from useInputProcessing.ts, use the exact tab-local variable name in scope, and add an id/action/subtext-style QuickAction object to mainActions."
+    },
+    {
+      "id": "F-002",
+      "category": "DEPENDENCY_CONFLICT",
+      "severity": "BLOCKING",
+      "summary": "Phase 2 still mixes tabId-keyed OMP control with session-id-based renderer calls and contradictory cleanup instructions.",
+      "evidence": "Unit 2-A defines ompProcesses, sendOmpCommand(tabId, ...), and killOmpProcess(tabId) (plan.md:798-817). Unit 2-B exposes sendStdinCommand(tabId, command) and forwards it to sendOmpCommand(tabId, ...) (plan.md:835-849). Unit 2-C now calls sendStdinCommand(targetSessionId, ...) in input, abort, and compact flows and says tab close should use the existing process.kill(targetSessionId) path with no renderer change (plan.md:865, 875-897, 909-920). Elsewhere the same plan still says useTabHandlers.ts must explicitly call process.kill (plan.md:33-37, 136-143, 1124-1129, 1155-1158). In the current codebase, the existing kill path is session-id-based through preload, IPC, and ProcessManager.kill(sessionId) (src/main/preload/process.ts:146-156; src/main/ipc/handlers/process.ts:596-606; src/main/process-manager/ProcessManager.ts:181-211).",
+      "impact": "Implementers still cannot tell whether OMP stdin writes and cleanup should be keyed by tab ID or by composite session ID. That ambiguity can produce leaked side-map entries, unreachable OMP processes, or duplicate lifecycle code.",
+      "recommended_fix": "Choose one identifier contract and apply it across Units 2-A, 2-B, and 2-C. Either keep OMP control tabId-keyed and add explicit IPC/cleanup bridging for that model, or move the side-map/IPC to composite session IDs and remove the stale useTabHandlers.ts instructions from the rest of the plan."
+    }
+  ]
+}
