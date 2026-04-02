@@ -868,8 +868,7 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 				activeSession.toolType !== 'codex' &&
 				hasCapabilityCached(activeSession.toolType, 'supportsBatchMode');
 
-			const isInteractiveCodexSession =
-				currentMode === 'ai' && activeSession.toolType === 'codex';
+			const isInteractiveCodexSession = currentMode === 'ai' && activeSession.toolType === 'codex';
 
 			if (isInteractiveCodexSession) {
 				(async () => {

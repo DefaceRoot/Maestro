@@ -1313,9 +1313,9 @@ describe('useInputProcessing', () => {
 				path: '/usr/local/bin/omx',
 				args: [],
 			});
-			window.maestro.process.getActiveProcesses = vi.fn().mockResolvedValue([
-				{ sessionId: 'session-1-ai-tab-1' },
-			]);
+			window.maestro.process.getActiveProcesses = vi
+				.fn()
+				.mockResolvedValue([{ sessionId: 'session-1-ai-tab-1' }]);
 
 			const session = createMockSession({
 				toolType: 'codex',
