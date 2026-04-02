@@ -174,6 +174,16 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 		.replace(/\[\??\d+(?:;\d+)*[A-Za-z]/g, '')
 		.replace(/\[\??[0-9;]*[A-Za-z]/g, '')
 		.replace(/\r/g, '')
+		.replace(/^OpenAI Codex v[^\n]*$/gim, '')
+		.replace(/^workdir:\s*[^\n]*$/gim, '')
+		.replace(/^provider:\s*[^\n]*$/gim, '')
+		.replace(/^approval:\s*[^\n]*$/gim, '')
+		.replace(/^sandbox:\s*[^\n]*$/gim, '')
+		.replace(/^reasoning (?:effort|summaries?):\s*[^\n]*$/gim, '')
+		.replace(/^session id:\s*[^\n]*$/gim, '')
+		.replace(/^[-─]{4,}$/gim, '')
+		.replace(/^›(?:[ \t].*)?$/gim, '')
+		.replace(/Reading additional input from stdin\.\.\./gi, '')
 		.replace(/⚠\s*Under-development features enabled:/gi, '')
 		.replace(/child_agents_md\./gi, '')
 		.replace(
@@ -205,14 +215,23 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 			/^To suppress this warning,/i.test(trimmed) ||
 			/^[╭╰│─]+/.test(trimmed) ||
 			/^>_\s*OpenAI Codex/i.test(trimmed) ||
+			/^OpenAI Codex v/i.test(trimmed) ||
 			/^model:\s/i.test(trimmed) ||
 			/^directory:\s/i.test(trimmed) ||
+			/^workdir:\s/i.test(trimmed) ||
+			/^provider:\s/i.test(trimmed) ||
+			/^approval:\s/i.test(trimmed) ||
+			/^sandbox:\s/i.test(trimmed) ||
+			/^reasoning (?:effort|summaries?):\s/i.test(trimmed) ||
+			/^session id:\s/i.test(trimmed) ||
 			/^Tip:\s/i.test(trimmed) ||
 			/^gpt-[^·]+·/.test(trimmed) ||
-			/^›\s/.test(trimmed) ||
+			/^›(?:[ \t].*)?$/.test(trimmed) ||
 			/^Starting MCP servers/i.test(trimmed) ||
 			/^(omx_[\w-]+(?:,\s*)?)+$/i.test(trimmed) ||
 			/^interrupt:\s/i.test(trimmed) ||
+			/^Reading additional input from stdin/i.test(trimmed) ||
+			/^[-─]{4,}$/.test(trimmed) ||
 			/^\d+%\s+context left$/i.test(trimmed) ||
 			/^tab to queue message/i.test(trimmed) ||
 			/^context left$/i.test(trimmed)

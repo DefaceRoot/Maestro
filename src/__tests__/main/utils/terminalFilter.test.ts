@@ -659,6 +659,24 @@ describe('terminalFilter', () => {
 			const input = ['hi', 'Assistant answer'].join('\n');
 			expect(stripAiPtyOutput(input, 'hi')).toBe('Assistant answer');
 		});
+
+		it('removes Codex transport metadata and prompt-only lines during warmup', () => {
+			const input = [
+				'OpenAI Codex v0.118.0 (research preview)',
+				'--------',
+				'workdir: /home/cbee/Repos/Maestro',
+				'provider: openai',
+				'approval: never',
+				'sandbox: danger-full-access',
+				'reasoning effort: high',
+				'session id: 019d4c31-69fc-7623-848c-4d5f98319b53',
+				'Reading additional input from stdin...',
+				'›',
+				'Meaningful assistant reply',
+			].join('\n');
+
+			expect(stripAiPtyOutput(input)).toBe('Meaningful assistant reply');
+		});
 	});
 
 	describe('isCommandEcho', () => {

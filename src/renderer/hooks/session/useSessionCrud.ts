@@ -25,6 +25,10 @@ import { generateId } from '../../utils/ids';
 import { validateNewSession } from '../../utils/sessionValidation';
 import { gitService } from '../../services/git';
 import { AUTO_RUN_FOLDER_NAME } from '../../components/Wizard';
+import {
+	buildCodexInteractiveSpawnConfig,
+	shouldPrewarmCodexInteractiveSession,
+} from '../../utils/codexInteractive';
 
 // ============================================================================
 // Dependencies interface
@@ -268,6 +272,15 @@ export function useSessionCrud(deps: UseSessionCrudDeps): UseSessionCrudReturn {
 					createdAt: Date.now(),
 					isRemote: !!isRemoteSession,
 				});
+
+				if (shouldPrewarmCodexInteractiveSession(newSession)) {
+					const commandToUse = customPath || agent.path || agent.command;
+					window.maestro.process
+						.spawn(buildCodexInteractiveSpawnConfig(newSession, initialTab, commandToUse))
+						.catch((error) => {
+							console.warn('[useSessionCrud] Failed to prewarm Codex interactive session:', error);
+						});
+				}
 
 				setActiveFocus('main');
 				setTimeout(() => inputRef.current?.focus(), 50);
