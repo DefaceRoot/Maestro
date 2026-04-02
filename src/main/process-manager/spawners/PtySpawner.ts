@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as pty from 'node-pty';
-import { stripControlSequences } from '../../utils/terminalFilter';
+import { stripAiPtyOutput, stripControlSequences } from '../../utils/terminalFilter';
 import { logger } from '../../utils/logger';
 import type { ProcessConfig, ManagedProcess, SpawnResult } from '../types';
 import type { DataBufferManager } from '../handlers/DataBufferManager';
@@ -126,7 +126,20 @@ export class PtySpawner {
 			// Handle output
 			ptyProcess.onData((data) => {
 				const managedProc = this.processes.get(sessionId);
-				const cleanedData = stripControlSequences(data, managedProc?.lastCommand, isTerminal);
+				let cleanedData: string;
+				if (isTerminal) {
+					cleanedData = stripControlSequences(data, managedProc?.lastCommand, true);
+				} else {
+					const combinedOutput = (managedProc?.stdoutBuffer || '') + data;
+					const sanitized = stripAiPtyOutput(combinedOutput);
+					const lastEmitted = managedProc?.streamedText || '';
+					cleanedData =
+						sanitized.length > lastEmitted.length ? sanitized.slice(lastEmitted.length) : '';
+					if (managedProc) {
+						managedProc.stdoutBuffer = combinedOutput;
+						managedProc.streamedText = sanitized;
+					}
+				}
 				logger.debug('[ProcessManager] PTY onData', 'ProcessManager', {
 					sessionId,
 					pid: ptyProcess.pid,

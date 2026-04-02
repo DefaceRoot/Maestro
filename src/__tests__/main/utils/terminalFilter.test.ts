@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	stripControlSequences,
 	stripAllAnsiCodes,
+	stripAiPtyOutput,
 	isCommandEcho,
 	extractCommand,
 } from '../../../main/utils/terminalFilter';
@@ -618,6 +619,27 @@ describe('terminalFilter', () => {
 				const result = stripAllAnsiCodes(input);
 				expect(result).toBe('text');
 			});
+		});
+	});
+
+	describe('stripAiPtyOutput', () => {
+		it('removes Codex TUI chrome and preserves meaningful content', () => {
+			const input = [
+				'\x1b[32m╭────────────────────╮\x1b[0m',
+				'│ >_ OpenAI Codex │',
+				'model: gpt-5.4 high',
+				'directory: ~/Repos/Maestro',
+				'Tip: New 2x rate limits',
+				'› Summarize recent commits',
+				'Starting MCP servers (2/6)',
+				'Implemented the fix successfully.',
+			].join('\n');
+			expect(stripAiPtyOutput(input)).toBe('Implemented the fix successfully.');
+		});
+
+		it('removes residual ANSI fragments from split PTY output', () => {
+			const input = '[39;49m[22m[0m Agent response line';
+			expect(stripAiPtyOutput(input)).toBe('Agent response line');
 		});
 	});
 

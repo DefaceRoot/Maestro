@@ -154,6 +154,49 @@ export function stripControlSequences(
 }
 
 /**
+ * Strip PTY UI chrome from interactive AI sessions.
+ *
+ * Interactive Codex/OMX sessions emit full-screen TUI repaint sequences that are
+ * appropriate for a terminal emulator but unreadable in Maestro's chat transcript.
+ * This helper removes ANSI/control sequences from the accumulated stream and drops
+ * common chrome-only lines so only meaningful assistant content remains.
+ */
+export function stripAiPtyOutput(text: string): string {
+	let cleaned = stripAllAnsiCodes(text);
+
+	// Remove residual CSI fragments that can remain when ANSI sequences were split
+	// across PTY chunks and later concatenated.
+	cleaned = cleaned
+		.replace(/\[\??\d+(?:;\d+)*[A-Za-z]/g, '')
+		.replace(/\[\??[0-9;]*[A-Za-z]/g, '');
+
+	const lines = cleaned.split('\n');
+	const filtered: string[] = [];
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed) continue;
+
+		if (
+			/^[╭╰│─]+/.test(trimmed) ||
+			/^>_\s*OpenAI Codex/i.test(trimmed) ||
+			/^model:\s/i.test(trimmed) ||
+			/^directory:\s/i.test(trimmed) ||
+			/^Tip:\s/i.test(trimmed) ||
+			/^gpt-[^·]+·/.test(trimmed) ||
+			/^›\s/.test(trimmed) ||
+			/^Starting MCP servers/i.test(trimmed)
+		) {
+			continue;
+		}
+
+		filtered.push(trimmed);
+	}
+
+	return filtered.join('\n');
+}
+
+/**
  * Strip ALL ANSI escape codes from text (including color codes).
  * This is more aggressive than stripControlSequences and removes everything.
  * Use this for stderr from AI agents where we don't want any formatting.
