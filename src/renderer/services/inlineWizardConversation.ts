@@ -584,6 +584,7 @@ export async function sendWizardMessage(
 			getStdinFlags({
 				isSshSession: !!session.sessionSshRemoteConfig?.enabled,
 				supportsStreamJsonInput: agent?.capabilities?.supportsStreamJsonInput ?? false,
+				toolType: session.agentType,
 			});
 		if (sendViaStdin && !argsForSpawn.includes('--input-format')) {
 			// Add --input-format stream-json when using stdin with stream-json compatible agents

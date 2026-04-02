@@ -978,6 +978,7 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 							isSshSession:
 								!!freshSession.sshRemoteId || !!freshSession.sessionSshRemoteConfig?.enabled,
 							supportsStreamJsonInput: agent.capabilities?.supportsStreamJsonInput ?? false,
+							toolType: freshSession.toolType,
 						});
 
 						// Spawn agent with generic config - the main process will use agent-specific

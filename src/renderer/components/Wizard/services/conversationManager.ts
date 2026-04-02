@@ -587,6 +587,7 @@ class ConversationManager {
 				getStdinFlags({
 					isSshSession,
 					supportsStreamJsonInput: agent?.capabilities?.supportsStreamJsonInput ?? false,
+					toolType: this.session!.agentType,
 				});
 			if (sendViaStdin) {
 				// Ensure the agent uses stream-json input format when sending JSON via stdin

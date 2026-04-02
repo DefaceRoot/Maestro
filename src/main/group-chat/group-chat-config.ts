@@ -9,6 +9,7 @@
 import { getAgentCapabilities } from '../agents';
 import { getWindowsShellForAgentExecution } from '../process-manager/utils/shellEscape';
 import { isWindows } from '../../shared/platformDetection';
+import { shouldUseRawStdinForCodex } from '../utils/codexTransport';
 
 // Module-level callback for getting custom shell path from settings
 let getCustomShellPathCallback: (() => string | undefined) | null = null;
@@ -72,6 +73,15 @@ export function getWindowsSpawnConfig(
 	agentId: string,
 	sshConfig?: SpawnSshConfig
 ): WindowsSpawnConfig {
+	if (shouldUseRawStdinForCodex(agentId, !!sshConfig?.enabled)) {
+		return {
+			shell: undefined,
+			runInShell: false,
+			sendPromptViaStdin: false,
+			sendPromptViaStdinRaw: true,
+		};
+	}
+
 	// Don't apply Windows shell config when using SSH (remote may be Linux)
 	if (!isWindows() || sshConfig?.enabled) {
 		return {

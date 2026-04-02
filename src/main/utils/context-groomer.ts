@@ -15,7 +15,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 import { buildAgentArgs, applyAgentConfigOverrides } from './agent-args';
-import { resolveCodexLaunchCommand, withCodexHomeEnv } from './codexTransport';
+import {
+	resolveCodexLaunchCommand,
+	shouldUseRawStdinForCodex,
+	withCodexHomeEnv,
+} from './codexTransport';
 import type { AgentDetector } from '../agents';
 
 const LOG_CONTEXT = '[ContextGroomer]';
@@ -34,6 +38,7 @@ export interface GroomingProcessManager {
 		prompt?: string;
 		promptArgs?: (prompt: string) => string[];
 		noPromptSeparator?: boolean;
+		sendPromptViaStdinRaw?: boolean;
 		// SSH remote config for running on a remote host
 		sessionSshRemoteConfig?: {
 			enabled: boolean;
@@ -352,6 +357,7 @@ export async function groomContext(
 			sessionSshRemoteConfig,
 			// Pass resolved env vars (merged from agent defaults + agent config + session overrides)
 			customEnvVars: resolvedEnvVars,
+			sendPromptViaStdinRaw: shouldUseRawStdinForCodex(agentType, !!sessionSshRemoteConfig?.enabled),
 		});
 
 		if (!spawnResult || spawnResult.pid <= 0) {

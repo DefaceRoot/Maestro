@@ -403,6 +403,7 @@ export function useAgentExecution(deps: UseAgentExecutionDeps): UseAgentExecutio
 					const { sendPromptViaStdin, sendPromptViaStdinRaw } = getStdinFlags({
 						isSshSession: !!session.sshRemoteId || !!session.sessionSshRemoteConfig?.enabled,
 						supportsStreamJsonInput: agent.capabilities?.supportsStreamJsonInput ?? false,
+						toolType: session.toolType,
 					});
 					// Batch processing (Auto Run) should NOT use read-only mode - it needs to make changes
 					window.maestro.process
@@ -564,6 +565,7 @@ export function useAgentExecution(deps: UseAgentExecutionDeps): UseAgentExecutio
 					const { sendPromptViaStdin, sendPromptViaStdinRaw } = getStdinFlags({
 						isSshSession: !!effectiveSessionSshRemoteConfig?.enabled,
 						supportsStreamJsonInput: agent.capabilities?.supportsStreamJsonInput ?? false,
+						toolType,
 					});
 					window.maestro.process
 						.spawn({

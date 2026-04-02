@@ -19,7 +19,11 @@ import {
 	CreateHandlerOptions,
 } from '../../utils/ipcHandler';
 import { buildAgentArgs, applyAgentConfigOverrides } from '../../utils/agent-args';
-import { resolveCodexLaunchCommand, withCodexHomeEnv } from '../../utils/codexTransport';
+import {
+	resolveCodexLaunchCommand,
+	shouldUseRawStdinForCodex,
+	withCodexHomeEnv,
+} from '../../utils/codexTransport';
 import { getSshRemoteConfig, createSshRemoteStoreAdapter } from '../../utils/ssh-remote-resolver';
 import { buildSshCommand } from '../../utils/ssh-command-builder';
 import { tabNamingPrompt } from '../../../prompts';
@@ -155,6 +159,7 @@ export function registerTabNamingHandlers(deps: TabNamingHandlerDependencies): v
 					// The prompt contains special characters that break when passed through multiple layers
 					// of shell escaping (local spawn -> SSH -> remote zsh -> bash -c).
 					let shouldSendPromptViaStdin = false;
+					let shouldSendPromptViaStdinRaw = shouldUseRawStdinForCodex(config.agentType, false);
 					if (config.sessionSshRemoteConfig?.enabled && config.sessionSshRemoteConfig.remoteId) {
 						const sshStoreAdapter = createSshRemoteStoreAdapter(settingsStore);
 						const sshResult = getSshRemoteConfig(sshStoreAdapter, {
@@ -181,6 +186,7 @@ export function registerTabNamingHandlers(deps: TabNamingHandlerDependencies): v
 									finalArgs = [...finalArgs, '--input-format', 'stream-json'];
 								}
 								shouldSendPromptViaStdin = true;
+								shouldSendPromptViaStdinRaw = false;
 								logger.debug(
 									'Using stdin for tab naming prompt in SSH remote execution',
 									LOG_CONTEXT,
@@ -265,7 +271,8 @@ export function registerTabNamingHandlers(deps: TabNamingHandlerDependencies): v
 							args: finalArgs,
 							prompt: fullPrompt,
 							customEnvVars,
-							sendPromptViaStdin: shouldSendPromptViaStdin,
+						sendPromptViaStdin: shouldSendPromptViaStdin,
+						sendPromptViaStdinRaw: shouldSendPromptViaStdinRaw,
 						});
 					});
 				} catch (error) {

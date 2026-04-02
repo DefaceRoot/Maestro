@@ -77,3 +77,10 @@ export function withCodexHomeEnv(
 		CODEX_HOME: scope === 'remote' ? REMOTE_CODEX_HOME : LOCAL_CODEX_HOME,
 	};
 }
+
+export function shouldUseRawStdinForCodex(
+	toolType: string,
+	isSshSession: boolean | undefined
+): boolean {
+	return isCodexAgentId(toolType) && !isSshSession;
+}

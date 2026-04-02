@@ -29,6 +29,7 @@ import { MaestroSettings } from './persistence';
 import {
 	getCodexCustomPathError,
 	resolveCodexLaunchCommand,
+	shouldUseRawStdinForCodex,
 	withCodexHomeEnv,
 } from '../../utils/codexTransport';
 
@@ -550,6 +551,9 @@ export function registerProcessHandlers(deps: ProcessHandlerDependencies): void 
 					sshRemoteHost: sshRemoteUsed?.host,
 					// SSH stdin script - the entire command is sent via stdin to /bin/bash on remote
 					sshStdinScript,
+					sendPromptViaStdinRaw:
+						config.sendPromptViaStdinRaw ||
+						shouldUseRawStdinForCodex(config.toolType, !!sshRemoteUsed),
 				});
 
 				logger.info(`Process spawned successfully`, LOG_CONTEXT, {
