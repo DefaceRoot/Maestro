@@ -182,7 +182,7 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 		.replace(/^reasoning (?:effort|summaries?):\s*[^\n]*$/gim, '')
 		.replace(/^session id:\s*[^\n]*$/gim, '')
 		.replace(/^[-─]{4,}$/gim, '')
-		.replace(/^›(?:\s.*)?$/gim, '')
+		.replace(/^›(?:[ \t].*)?$/gim, '')
 		.replace(/Reading additional input from stdin\.\.\./gi, '')
 		.replace(/⚠\s*Under-development features enabled:/gi, '')
 		.replace(/child_agents_md\./gi, '')
@@ -226,7 +226,7 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 			/^session id:\s/i.test(trimmed) ||
 			/^Tip:\s/i.test(trimmed) ||
 			/^gpt-[^·]+·/.test(trimmed) ||
-			/^›(?:\s.*)?$/.test(trimmed) ||
+			/^›(?:[ \t].*)?$/.test(trimmed) ||
 			/^Starting MCP servers/i.test(trimmed) ||
 			/^(omx_[\w-]+(?:,\s*)?)+$/i.test(trimmed) ||
 			/^interrupt:\s/i.test(trimmed) ||

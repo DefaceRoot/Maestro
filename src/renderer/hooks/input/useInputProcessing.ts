@@ -884,7 +884,6 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 						if (!freshActiveTab) throw new Error('No active tab found');
 
 						const commandToUse = freshSession.customPath || agent.path || agent.command;
-						const tabAgentSessionId = freshActiveTab.agentSessionId;
 						const activeProcesses = await window.maestro.process.getActiveProcesses();
 						const processExists = activeProcesses.some((p) => p.sessionId === targetSessionId);
 
