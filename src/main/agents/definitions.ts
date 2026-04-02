@@ -149,6 +149,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
 		command: CODEX_OMX_BINARY,
 		// Base args for interactive mode (no flags that are exec-only)
 		args: [],
+		requiresPty: true,
 		// Codex-via-OMX CLI argument builders
 		// Batch mode: omx exec -c model_reasoning_effort="high" [-s danger-full-access] --json --skip-git-repo-check [--sandbox read-only] [-C dir] [resume <id>] -- "prompt"
 		// Sandbox modes:

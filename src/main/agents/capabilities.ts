@@ -209,7 +209,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapabilities> = {
 		supportsCostTracking: false, // Token counts only - Codex doesn't provide cost, pricing varies by model
 		supportsUsageStats: true, // usage in turn.completed events - Verified
 		supportsBatchMode: true, // exec subcommand - Verified
-		requiresPromptToStart: true, // Codex requires 'exec' subcommand with prompt, no interactive mode via PTY
+		requiresPromptToStart: false, // Maestro launches Codex via OMX interactive sessions by default
 		supportsStreaming: true, // Streams JSONL events - Verified
 		supportsResultMessages: false, // All messages are agent_message type (no distinct result) - Verified
 		supportsModelSelection: true, // -m, --model flag - Documented

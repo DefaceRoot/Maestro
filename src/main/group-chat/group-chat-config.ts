@@ -73,6 +73,8 @@ export function getWindowsSpawnConfig(
 	agentId: string,
 	sshConfig?: SpawnSshConfig
 ): WindowsSpawnConfig {
+	const capabilities = getAgentCapabilities(agentId);
+
 	if (shouldUseRawStdinForCodex(agentId, !!sshConfig?.enabled)) {
 		return {
 			shell: undefined,
@@ -98,7 +100,6 @@ export function getWindowsSpawnConfig(
 	});
 
 	// Determine stdin mode based on agent capabilities
-	const capabilities = getAgentCapabilities(agentId);
 	const supportsStreamJson = capabilities.supportsStreamJsonInput;
 
 	return {

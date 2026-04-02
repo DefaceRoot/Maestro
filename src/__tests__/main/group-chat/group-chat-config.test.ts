@@ -213,7 +213,7 @@ describe('group-chat-config', () => {
 				expect(result.sendPromptViaStdinRaw).toBe(false);
 			});
 
-			it('should correctly identify Codex as stream-json capable', () => {
+			it('should force raw stdin for Codex local interactive launch', () => {
 				vi.mocked(getAgentCapabilities).mockReturnValue({
 					supportsStreamJsonInput: true,
 				} as any);
@@ -221,8 +221,8 @@ describe('group-chat-config', () => {
 				const result = getWindowsSpawnConfig('codex');
 
 				expect(getAgentCapabilities).toHaveBeenCalledWith('codex');
-				expect(result.sendPromptViaStdin).toBe(true);
-				expect(result.sendPromptViaStdinRaw).toBe(false);
+				expect(result.sendPromptViaStdin).toBe(false);
+				expect(result.sendPromptViaStdinRaw).toBe(true);
 			});
 
 			it('should correctly identify OpenCode as non-stream-json', () => {

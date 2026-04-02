@@ -409,6 +409,8 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 				const shouldQueue = isReadOnlyMode
 					? activeTab?.state === 'busy' // Read-only: only queue if THIS tab is busy
 					: (activeSession.state === 'busy' && !canWriteBypassQueue()) || isAutoRunActive; // Write mode: queue if busy OR AutoRun active
+				const finalShouldQueue =
+					activeSession.toolType === 'codex' && !isAutoRunActive ? false : shouldQueue;
 
 				// Debug logging to diagnose queue issues
 				console.log('[processInput] Queue decision:', {
@@ -417,11 +419,11 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 					tabState: activeTab?.state,
 					isReadOnlyMode,
 					isAutoRunActive,
-					shouldQueue,
+					shouldQueue: finalShouldQueue,
 					queueLength: activeSession.executionQueue.length,
 				});
 
-				if (shouldQueue) {
+				if (finalShouldQueue) {
 					const queuedItem: QueuedItem = {
 						id: generateId(),
 						timestamp: Date.now(),
@@ -666,7 +668,10 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 			if (automaticTabNamingEnabled && isNewAiSession && hasTextMessage && hasNoCustomName) {
 				// Fast-path: extract tab name from known patterns (GitHub URLs, PR/issue refs, Jira tickets)
 				// This avoids spawning an ephemeral agent for messages with obvious identifiers
-				const quickName = extractQuickTabName(effectiveInputValue);
+				const quickName =
+					activeSession.toolType === 'codex'
+						? effectiveInputValue.trim().split(/\s+/).slice(0, 6).join(' ')
+						: extractQuickTabName(effectiveInputValue);
 				if (quickName) {
 					window.maestro.logger.log('info', `Quick tab named: "${quickName}"`, 'TabNaming', {
 						tabId: activeTabForNaming.id,
@@ -852,9 +857,90 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 			// Check if this is an AI agent in batch mode
 			// Batch mode agents spawn a new process per message rather than writing to stdin
 			const isBatchModeAgent =
-				currentMode === 'ai' && hasCapabilityCached(activeSession.toolType, 'supportsBatchMode');
+				currentMode === 'ai' &&
+				activeSession.toolType !== 'codex' &&
+				hasCapabilityCached(activeSession.toolType, 'supportsBatchMode');
 
-			if (isBatchModeAgent) {
+			const isInteractiveCodexSession =
+				currentMode === 'ai' && activeSession.toolType === 'codex';
+
+			if (isInteractiveCodexSession) {
+				(async () => {
+					try {
+						const agent = await window.maestro.agents.get(activeSession.toolType);
+						if (!agent) throw new Error(`${activeSession.toolType} agent not found`);
+
+						const freshSession = sessionsRef.current.find((s) => s.id === activeSessionId);
+						if (!freshSession) throw new Error('Session not found');
+
+						const freshActiveTab = getActiveTab(freshSession);
+						if (!freshActiveTab) throw new Error('No active tab found');
+
+						const commandToUse = freshSession.customPath || agent.path || agent.command;
+						const tabAgentSessionId = freshActiveTab.agentSessionId;
+						const activeProcesses = await window.maestro.process.getActiveProcesses();
+						const processExists = activeProcesses.some((p) => p.sessionId === targetSessionId);
+
+						if (!processExists) {
+							const spawnArgs = ['--madmax', '--high'];
+							if (tabAgentSessionId) {
+								spawnArgs.push('resume', tabAgentSessionId);
+							}
+
+							await window.maestro.process.spawn({
+								sessionId: targetSessionId,
+								toolType: freshSession.toolType,
+								cwd: freshSession.cwd,
+								command: commandToUse,
+								args: spawnArgs,
+								sessionCustomPath: freshSession.customPath,
+								sessionCustomArgs: freshSession.customArgs,
+								sessionCustomEnvVars: freshSession.customEnvVars,
+								sessionCustomModel: freshSession.customModel,
+								sessionCustomContextWindow: freshSession.customContextWindow,
+								sessionSshRemoteConfig: freshSession.sessionSshRemoteConfig,
+							});
+
+							await new Promise((resolve) => setTimeout(resolve, 250));
+						}
+
+						await window.maestro.process.write(targetSessionId, `${capturedInputValue}\n`);
+					} catch (error) {
+						console.error('Failed to start/write interactive Codex session:', error);
+						const errorLog: LogEntry = {
+							id: generateId(),
+							timestamp: Date.now(),
+							source: 'system',
+							text: `Error: Failed to launch Codex via OMX - ${(error as Error).message}`,
+						};
+						setSessions((prev) =>
+							prev.map((s) => {
+								if (s.id !== activeSessionId) return s;
+								const updatedAiTabs =
+									s.aiTabs?.length > 0
+										? s.aiTabs.map((tab) =>
+												tab.id === s.activeTabId
+													? {
+															...tab,
+															state: 'idle' as const,
+															thinkingStartTime: undefined,
+															logs: [...tab.logs, errorLog],
+														}
+													: tab
+											)
+										: s.aiTabs;
+								return {
+									...s,
+									state: 'idle',
+									busySource: undefined,
+									thinkingStartTime: undefined,
+									aiTabs: updatedAiTabs,
+								};
+							})
+						);
+					}
+				})();
+			} else if (isBatchModeAgent) {
 				// Batch mode: Spawn new agent process with prompt
 				(async () => {
 					try {
