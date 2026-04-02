@@ -378,7 +378,9 @@ async function spawnJsonLineAgent(
 		// Build args from agent definition
 		const args: string[] = [];
 		if (def?.batchModePrefix) args.push(...def.batchModePrefix);
-		if (toolType === 'codex') args.push('--high', '--madmax');
+		if (toolType === 'codex') {
+			args.push('-s', 'danger-full-access', '-c', 'model_reasoning_effort="high"');
+		}
 		if (def?.batchModeArgs) args.push(...def.batchModeArgs);
 		if (def?.jsonOutputArgs) args.push(...def.jsonOutputArgs);
 

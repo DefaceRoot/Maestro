@@ -58,11 +58,12 @@ export function buildAgentArgs(
 	}
 
 	// Codex is launched through OMX. High reasoning is always on for Codex batch-mode
-	// runs, while madmax is only enabled for writable flows.
+	// runs, while writable flows explicitly request full access through stable
+	// Codex exec flags instead of OMX's --madmax alias.
 	if (isCodexAgentId(agent.id) && options.prompt) {
-		finalArgs = ['--high', ...finalArgs];
+		finalArgs = ['-c', 'model_reasoning_effort="high"', ...finalArgs];
 		if (!options.readOnlyMode) {
-			finalArgs = ['--madmax', ...finalArgs];
+			finalArgs = ['-s', 'danger-full-access', ...finalArgs];
 		}
 	}
 

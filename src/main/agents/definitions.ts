@@ -150,9 +150,9 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
 		// Base args for interactive mode (no flags that are exec-only)
 		args: [],
 		// Codex-via-OMX CLI argument builders
-		// Batch mode: omx exec --high --madmax --json --skip-git-repo-check [--sandbox read-only] [-C dir] [resume <id>] -- "prompt"
+		// Batch mode: omx exec -c model_reasoning_effort="high" [-s danger-full-access] --json --skip-git-repo-check [--sandbox read-only] [-C dir] [resume <id>] -- "prompt"
 		// Sandbox modes:
-		//   - Default (YOLO): --madmax (translated by OMX to the appropriate Codex bypass flag)
+		//   - Default (YOLO): explicit codex exec sandbox flag (-s danger-full-access)
 		//   - Read-only: --sandbox read-only (can only read files, overrides YOLO)
 		batchModePrefix: ['exec'], // OMX proxies Codex batch mode through the exec subcommand
 		batchModeArgs: ['--skip-git-repo-check'], // Writable/default batch flags (transport flags injected separately)
