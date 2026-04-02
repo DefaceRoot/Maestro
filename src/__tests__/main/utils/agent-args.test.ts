@@ -209,6 +209,28 @@ describe('buildAgentArgs', () => {
 		expect(result).toEqual(['input-a', 'input-a', '--dangerously-bypass-approvals-and-sandbox']);
 	});
 
+	it('keeps omx exec as the leading codex batch-mode command', () => {
+		const agent = makeAgent({
+			id: 'codex',
+			batchModePrefix: ['exec'],
+			batchModeArgs: ['--skip-git-repo-check'],
+			jsonOutputArgs: ['--json'],
+		});
+		const result = buildAgentArgs(agent, {
+			baseArgs: [],
+			prompt: 'hello',
+			readOnlyMode: false,
+		});
+		expect(result.slice(0, 6)).toEqual([
+			'exec',
+			'-s',
+			'danger-full-access',
+			'-c',
+			'model_reasoning_effort="high"',
+			'--skip-git-repo-check',
+		]);
+	});
+
 	// -- resumeArgs --
 	it('adds resumeArgs when agentSessionId provided', () => {
 		const agent = makeAgent({

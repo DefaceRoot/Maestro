@@ -61,10 +61,16 @@ export function buildAgentArgs(
 	// runs, while writable flows explicitly request full access through stable
 	// Codex exec flags instead of OMX's --madmax alias.
 	if (isCodexAgentId(agent.id) && options.prompt) {
-		finalArgs = ['-c', 'model_reasoning_effort="high"', ...finalArgs];
+		const prefixLength = agent.batchModePrefix?.length ?? 0;
+		const codexTransportArgs = ['-c', 'model_reasoning_effort="high"'];
 		if (!options.readOnlyMode) {
-			finalArgs = ['-s', 'danger-full-access', ...finalArgs];
+			codexTransportArgs.unshift('-s', 'danger-full-access');
 		}
+		finalArgs = [
+			...finalArgs.slice(0, prefixLength),
+			...codexTransportArgs,
+			...finalArgs.slice(prefixLength),
+		];
 	}
 
 	if (agent.batchModeArgs && options.prompt) {
