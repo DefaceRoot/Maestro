@@ -119,6 +119,8 @@ describe('useInputProcessing', () => {
 				...window.maestro?.process,
 				spawn: vi.fn().mockResolvedValue(undefined),
 				write: vi.fn().mockResolvedValue(undefined),
+				getActiveProcesses: vi.fn().mockResolvedValue([]),
+				onData: vi.fn(() => vi.fn()),
 				runCommand: vi.fn().mockResolvedValue(undefined),
 			},
 			agents: {
@@ -1300,6 +1302,41 @@ describe('useInputProcessing', () => {
 
 			// Tab naming was attempted
 			expect(mockGenerateTabName).toHaveBeenCalled();
+		});
+	});
+
+	describe('interactive Codex via OMX', () => {
+		it('reuses a prewarmed Codex process instead of respawning', async () => {
+			window.maestro.agents.get = vi.fn().mockResolvedValue({
+				id: 'codex',
+				command: 'omx',
+				path: '/usr/local/bin/omx',
+				args: [],
+			});
+			window.maestro.process.getActiveProcesses = vi.fn().mockResolvedValue([
+				{ sessionId: 'session-1-ai-tab-1' },
+			]);
+
+			const session = createMockSession({
+				toolType: 'codex',
+				aiPid: 0,
+			});
+			const deps = createDeps({
+				activeSession: session,
+				sessionsRef: { current: [session] },
+				inputValue: 'hello codex',
+			});
+			const { result } = renderHook(() => useInputProcessing(deps));
+
+			await act(async () => {
+				await result.current.processInput();
+			});
+
+			expect(window.maestro.process.spawn).not.toHaveBeenCalled();
+			expect(window.maestro.process.write).toHaveBeenCalledWith(
+				'session-1-ai-tab-1',
+				'hello codex\n'
+			);
 		});
 	});
 });

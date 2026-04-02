@@ -72,6 +72,7 @@ const mockMaestro = {
 		recordSessionCreated: vi.fn(),
 	},
 	process: {
+		spawn: vi.fn().mockResolvedValue(undefined),
 		kill: vi.fn().mockResolvedValue(undefined),
 	},
 	playbooks: {
@@ -260,6 +261,62 @@ describe('useSessionCrud', () => {
 					isRemote: false,
 				})
 			);
+		});
+
+		it('prewarms local Codex sessions with the interactive OMX transport', async () => {
+			mockMaestro.agents.get.mockResolvedValueOnce({
+				id: 'codex',
+				name: 'Codex via OMX',
+				command: 'omx',
+				path: '/usr/local/bin/omx',
+			});
+
+			const deps = createDeps();
+			const { result } = renderHook(() => useSessionCrud(deps));
+
+			await act(async () => {
+				await result.current.createNewSession('codex', '/test/project', 'Codex Session');
+			});
+
+			expect(mockMaestro.process.spawn).toHaveBeenCalledWith(
+				expect.objectContaining({
+					sessionId: 'mock-id-1-ai-mock-id-2',
+					toolType: 'codex',
+					cwd: '/test/project',
+					command: '/usr/local/bin/omx',
+					args: ['--madmax', '--high'],
+				})
+			);
+		});
+
+		it('does not prewarm remote Codex sessions', async () => {
+			mockMaestro.agents.get.mockResolvedValueOnce({
+				id: 'codex',
+				name: 'Codex via OMX',
+				command: 'omx',
+				path: '/usr/local/bin/omx',
+			});
+
+			const deps = createDeps();
+			const { result } = renderHook(() => useSessionCrud(deps));
+
+			await act(async () => {
+				await result.current.createNewSession(
+					'codex',
+					'/test/project',
+					'Remote Codex Session',
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					{ enabled: true, remoteId: 'remote-1' }
+				);
+			});
+
+			expect(mockMaestro.process.spawn).not.toHaveBeenCalled();
 		});
 
 		it('checks git repo status for local sessions', async () => {
