@@ -9,6 +9,10 @@ import type {
 } from '../../types';
 import { getActiveTab, extractQuickTabName } from '../../utils/tabHelpers';
 import { getStdinFlags } from '../../utils/spawnHelpers';
+import {
+	buildCodexInteractiveSpawnConfig,
+	getCodexInteractiveProcessSessionId,
+} from '../../utils/codexInteractive';
 import { generateId } from '../../utils/ids';
 import { substituteTemplateVariables } from '../../utils/templateVariables';
 import { filterYoloArgs } from '../../utils/agentArgs';
@@ -851,7 +855,10 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 			const activeTabForSpawn = getActiveTab(activeSession);
 			const targetSessionId =
 				currentMode === 'ai'
-					? `${activeSession.id}-ai-${activeTabForSpawn?.id || 'default'}`
+					? getCodexInteractiveProcessSessionId(
+							activeSession.id,
+							activeTabForSpawn?.id || 'default'
+						)
 					: `${activeSession.id}-terminal`;
 
 			// Check if this is an AI agent in batch mode
@@ -882,11 +889,6 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 						const processExists = activeProcesses.some((p) => p.sessionId === targetSessionId);
 
 						if (!processExists) {
-							const spawnArgs = ['--madmax', '--high'];
-							if (tabAgentSessionId) {
-								spawnArgs.push('resume', tabAgentSessionId);
-							}
-
 							let unsubscribeReadyListener: (() => void) | undefined;
 							const readyPromise = new Promise<void>((resolve) => {
 								let resolved = false;
@@ -907,19 +909,9 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 								setTimeout(finish, 2000);
 							});
 
-							await window.maestro.process.spawn({
-								sessionId: targetSessionId,
-								toolType: freshSession.toolType,
-								cwd: freshSession.cwd,
-								command: commandToUse,
-								args: spawnArgs,
-								sessionCustomPath: freshSession.customPath,
-								sessionCustomArgs: freshSession.customArgs,
-								sessionCustomEnvVars: freshSession.customEnvVars,
-								sessionCustomModel: freshSession.customModel,
-								sessionCustomContextWindow: freshSession.customContextWindow,
-								sessionSshRemoteConfig: freshSession.sessionSshRemoteConfig,
-							});
+							await window.maestro.process.spawn(
+								buildCodexInteractiveSpawnConfig(freshSession, freshActiveTab, commandToUse)
+							);
 
 							await readyPromise;
 						}
