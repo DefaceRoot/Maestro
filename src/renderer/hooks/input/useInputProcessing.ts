@@ -887,6 +887,26 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 								spawnArgs.push('resume', tabAgentSessionId);
 							}
 
+							let unsubscribeReadyListener: (() => void) | undefined;
+							const readyPromise = new Promise<void>((resolve) => {
+								let resolved = false;
+								const finish = () => {
+									if (resolved) return;
+									resolved = true;
+									unsubscribeReadyListener?.();
+									resolve();
+								};
+
+								unsubscribeReadyListener = window.maestro.process.onData((sid, data) => {
+									if (sid !== targetSessionId) return;
+									if (/›|OpenAI Codex|directory:/i.test(data)) {
+										setTimeout(finish, 250);
+									}
+								});
+
+								setTimeout(finish, 2000);
+							});
+
 							await window.maestro.process.spawn({
 								sessionId: targetSessionId,
 								toolType: freshSession.toolType,
@@ -901,7 +921,7 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 								sessionSshRemoteConfig: freshSession.sessionSshRemoteConfig,
 							});
 
-							await new Promise((resolve) => setTimeout(resolve, 250));
+							await readyPromise;
 						}
 
 						await window.maestro.process.write(targetSessionId, `${capturedInputValue}\n`);

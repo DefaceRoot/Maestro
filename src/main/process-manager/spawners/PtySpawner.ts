@@ -131,7 +131,7 @@ export class PtySpawner {
 					cleanedData = stripControlSequences(data, managedProc?.lastCommand, true);
 				} else {
 					const combinedOutput = (managedProc?.stdoutBuffer || '') + data;
-					const sanitized = stripAiPtyOutput(combinedOutput);
+					const sanitized = stripAiPtyOutput(combinedOutput, managedProc?.lastCommand);
 					const lastEmitted = managedProc?.streamedText || '';
 					cleanedData =
 						sanitized.length > lastEmitted.length ? sanitized.slice(lastEmitted.length) : '';

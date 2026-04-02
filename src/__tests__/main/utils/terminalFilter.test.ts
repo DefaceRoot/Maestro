@@ -641,6 +641,24 @@ describe('terminalFilter', () => {
 			const input = '[39;49m[22m[0m Agent response line';
 			expect(stripAiPtyOutput(input)).toBe('Agent response line');
 		});
+
+		it('removes the unstable-features warning block and status/footer noise', () => {
+			const input = [
+				'\x1bM\x1bM⚠ Under-development features enabled:',
+				'child_agents_md.',
+				'To suppress this warning, set `suppress_unstable_features_warning = true` in /home/cbee/.codex/config.toml.',
+				'Starting MCP servers (0/5): omx_state, omx_team_run',
+				'interrupt: Ctrl+C, esc to interrupt',
+				'gpt-5.4 high · 100% left · ~/Repos/Maestro · 100k/1M window',
+				'Real assistant response.',
+			].join('\n');
+			expect(stripAiPtyOutput(input)).toBe('Real assistant response.');
+		});
+
+		it('removes echoed user command from AI PTY output', () => {
+			const input = ['hi', 'Assistant answer'].join('\n');
+			expect(stripAiPtyOutput(input, 'hi')).toBe('Assistant answer');
+		});
 	});
 
 	describe('isCommandEcho', () => {

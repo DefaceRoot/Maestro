@@ -161,14 +161,33 @@ export function stripControlSequences(
  * This helper removes ANSI/control sequences from the accumulated stream and drops
  * common chrome-only lines so only meaningful assistant content remains.
  */
-export function stripAiPtyOutput(text: string): string {
+export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 	let cleaned = stripAllAnsiCodes(text);
+
+	// Remove single-character escape sequences like ESC M (reverse index)
+	// that are common in TUI redraws and can survive chunk boundaries.
+	cleaned = cleaned.replace(/\x1b[@-Z\\-_]/g, '');
 
 	// Remove residual CSI fragments that can remain when ANSI sequences were split
 	// across PTY chunks and later concatenated.
 	cleaned = cleaned
 		.replace(/\[\??\d+(?:;\d+)*[A-Za-z]/g, '')
-		.replace(/\[\??[0-9;]*[A-Za-z]/g, '');
+		.replace(/\[\??[0-9;]*[A-Za-z]/g, '')
+		.replace(/\r/g, '')
+		.replace(/⚠\s*Under-development features enabled:/gi, '')
+		.replace(/child_agents_md\./gi, '')
+		.replace(
+			/To suppress this warning, set\s+`suppress_unstable_features_warning\s*=\s*true`\s+in\s+\/[^\s]+config\.toml\.?/gi,
+			''
+		)
+		.replace(/Starting MCP servers\s*\(\d+\/\d+\):\s*/gi, '')
+		.replace(/interrupt:\s*Ctrl\+C,\s*esc to (?:interrupt|queue message)/gi, '')
+		.replace(/tab to queue message/gi, '')
+		.replace(/gpt-[^\n·]+(?:\s*·\s*[^\n·]+){1,8}/gi, '')
+		.replace(
+			/⚠\s*Under-development features enabled:[\s\S]*?suppress_unstable_features_warning\s*=\s*true\s*in\s*\/[^\s]+config\.toml\.?/gi,
+			''
+		);
 
 	const lines = cleaned.split('\n');
 	const filtered: string[] = [];
@@ -177,7 +196,13 @@ export function stripAiPtyOutput(text: string): string {
 		const trimmed = line.trim();
 		if (!trimmed) continue;
 
+		if (lastCommand && trimmed === lastCommand.trim()) {
+			continue;
+		}
+
 		if (
+			/^⚠\s*Under-development features enabled:/i.test(trimmed) ||
+			/^To suppress this warning,/i.test(trimmed) ||
 			/^[╭╰│─]+/.test(trimmed) ||
 			/^>_\s*OpenAI Codex/i.test(trimmed) ||
 			/^model:\s/i.test(trimmed) ||
@@ -185,7 +210,12 @@ export function stripAiPtyOutput(text: string): string {
 			/^Tip:\s/i.test(trimmed) ||
 			/^gpt-[^·]+·/.test(trimmed) ||
 			/^›\s/.test(trimmed) ||
-			/^Starting MCP servers/i.test(trimmed)
+			/^Starting MCP servers/i.test(trimmed) ||
+			/^(omx_[\w-]+(?:,\s*)?)+$/i.test(trimmed) ||
+			/^interrupt:\s/i.test(trimmed) ||
+			/^\d+%\s+context left$/i.test(trimmed) ||
+			/^tab to queue message/i.test(trimmed) ||
+			/^context left$/i.test(trimmed)
 		) {
 			continue;
 		}
