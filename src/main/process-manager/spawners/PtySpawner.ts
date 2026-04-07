@@ -132,12 +132,17 @@ export class PtySpawner {
 				} else {
 					const combinedOutput = (managedProc?.stdoutBuffer || '') + data;
 					const sanitized = stripAiPtyOutput(combinedOutput, managedProc?.lastCommand);
+					const lastNewlineIndex = sanitized.lastIndexOf('\n');
+					const committableOutput =
+						lastNewlineIndex >= 0 ? sanitized.slice(0, lastNewlineIndex + 1) : '';
 					const lastEmitted = managedProc?.streamedText || '';
 					cleanedData =
-						sanitized.length > lastEmitted.length ? sanitized.slice(lastEmitted.length) : '';
+						committableOutput.length > lastEmitted.length
+							? committableOutput.slice(lastEmitted.length)
+							: '';
 					if (managedProc) {
 						managedProc.stdoutBuffer = combinedOutput;
-						managedProc.streamedText = sanitized;
+						managedProc.streamedText = committableOutput;
 					}
 				}
 				logger.debug('[ProcessManager] PTY onData', 'ProcessManager', {

@@ -202,6 +202,7 @@ describe('useInputProcessing', () => {
 
 			await act(async () => {
 				await result.current.processInput();
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			});
 
 			expect(mockOnHistoryCommand).toHaveBeenCalledTimes(1);
@@ -220,6 +221,7 @@ describe('useInputProcessing', () => {
 
 			await act(async () => {
 				await result.current.processInput();
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			});
 
 			// Should not call history handler in terminal mode
@@ -239,6 +241,7 @@ describe('useInputProcessing', () => {
 
 			await act(async () => {
 				await result.current.processInput();
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			});
 
 			expect(mockOnWizardCommand).toHaveBeenCalledTimes(1);
@@ -1330,13 +1333,17 @@ describe('useInputProcessing', () => {
 
 			await act(async () => {
 				await result.current.processInput();
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			});
 
 			expect(window.maestro.process.spawn).not.toHaveBeenCalled();
-			expect(window.maestro.process.write).toHaveBeenCalledWith(
+			expect(window.maestro.process.write).toHaveBeenNthCalledWith(
+				1,
 				'session-1-ai-tab-1',
-				'hello codex\n'
+				'hello codex'
 			);
+			expect(window.maestro.process.write).toHaveBeenNthCalledWith(2, 'session-1-ai-tab-1', '\r');
+			expect(window.maestro.process.write).toHaveBeenNthCalledWith(3, 'session-1-ai-tab-1', '\r');
 		});
 	});
 });

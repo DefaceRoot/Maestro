@@ -27,6 +27,8 @@ import { gitService } from '../../services/git';
 import { AUTO_RUN_FOLDER_NAME } from '../../components/Wizard';
 import {
 	buildCodexInteractiveSpawnConfig,
+	getCodexInteractiveProcessSessionId,
+	primeCodexInteractiveReady,
 	shouldPrewarmCodexInteractiveSession,
 } from '../../utils/codexInteractive';
 
@@ -275,6 +277,9 @@ export function useSessionCrud(deps: UseSessionCrudDeps): UseSessionCrudReturn {
 
 				if (shouldPrewarmCodexInteractiveSession(newSession)) {
 					const commandToUse = customPath || agent.path || agent.command;
+					primeCodexInteractiveReady(
+						getCodexInteractiveProcessSessionId(newSession.id, initialTab.id)
+					);
 					window.maestro.process
 						.spawn(buildCodexInteractiveSpawnConfig(newSession, initialTab, commandToUse))
 						.catch((error) => {

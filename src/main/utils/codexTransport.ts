@@ -7,6 +7,13 @@ export const CODEX_PROVIDER_BINARY = 'codex';
 export const CODEX_DISPLAY_NAME = 'Codex via OMX';
 export const LOCAL_CODEX_HOME = path.join(os.homedir(), '.codex');
 export const REMOTE_CODEX_HOME = '$HOME/.codex';
+const OMX_DIRECT_LAUNCH_STRIPPED_ENV_KEYS = [
+	'TMUX',
+	'TMUX_PANE',
+	'TERM_PROGRAM',
+	'TERM_PROGRAM_VERSION',
+	'OMX_TEAM_WORKER_LAUNCH_ARGS',
+] as const;
 
 export function isCodexAgentId(agentId: string | undefined | null): boolean {
 	return agentId === CODEX_AGENT_ID;
@@ -83,4 +90,34 @@ export function shouldUseRawStdinForCodex(
 	isSshSession: boolean | undefined
 ): boolean {
 	return isCodexAgentId(toolType) && !isSshSession;
+}
+
+export function shouldForceDirectOmxLaunch(
+	toolType: string,
+	hasPrompt: boolean,
+	isSshSession: boolean | undefined
+): boolean {
+	return isCodexAgentId(toolType) && !hasPrompt && !isSshSession;
+}
+
+export function withDirectOmxLaunchEnv(
+	env: Record<string, string> | undefined,
+	preloadPath: string
+): Record<string, string> {
+	const nextEnv: Record<string, string> = {
+		...(env || {}),
+		TERM: 'xterm-256color',
+	};
+
+	for (const key of OMX_DIRECT_LAUNCH_STRIPPED_ENV_KEYS) {
+		delete nextEnv[key];
+	}
+
+	const requireArg = `--require=${preloadPath}`;
+	const existingNodeOptions = nextEnv.NODE_OPTIONS?.trim();
+	nextEnv.NODE_OPTIONS = existingNodeOptions
+		? `${existingNodeOptions} ${requireArg}`
+		: requireArg;
+
+	return nextEnv;
 }

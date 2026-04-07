@@ -519,6 +519,63 @@ describe('process IPC handlers', () => {
 			);
 		});
 
+		it('forces local interactive Codex launches through OMX direct mode without tmux inheritance', async () => {
+			const previousTmux = process.env.TMUX;
+			const previousTmuxPane = process.env.TMUX_PANE;
+			const previousNodeOptions = process.env.NODE_OPTIONS;
+			process.env.TMUX = '/tmp/tmux-1000/default,123,0';
+			process.env.TMUX_PANE = '%7';
+			delete process.env.NODE_OPTIONS;
+
+			const mockAgent = {
+				id: 'codex',
+				name: 'Codex via OMX',
+				binaryName: 'omx',
+				path: '/usr/local/bin/omx',
+				command: 'omx',
+				requiresPty: true,
+				capabilities: {
+					supportsStreamJsonInput: false,
+				},
+			};
+
+			mockAgentDetector.getAgent.mockResolvedValue(mockAgent);
+			mockProcessManager.spawn.mockReturnValue({ pid: 12345, success: true });
+
+			try {
+				const handler = handlers.get('process:spawn');
+				await handler!({} as any, {
+					sessionId: 'session-codex-interactive',
+					toolType: 'codex',
+					cwd: '/test/project',
+					command: '/usr/local/bin/omx',
+					args: ['--madmax', '--high'],
+				});
+
+				expect(mockProcessManager.spawn).toHaveBeenCalledWith(
+					expect.objectContaining({
+						customEnvVars: expect.objectContaining({
+							CODEX_HOME: expect.any(String),
+							NODE_OPTIONS: expect.stringContaining('omxDirectLaunchPreload.js'),
+							TERM: 'xterm-256color',
+						}),
+					})
+				);
+
+				const spawnConfig =
+					mockProcessManager.spawn.mock.calls[mockProcessManager.spawn.mock.calls.length - 1][0];
+				expect(spawnConfig.customEnvVars.TMUX).toBeUndefined();
+				expect(spawnConfig.customEnvVars.TMUX_PANE).toBeUndefined();
+			} finally {
+				if (previousTmux === undefined) delete process.env.TMUX;
+				else process.env.TMUX = previousTmux;
+				if (previousTmuxPane === undefined) delete process.env.TMUX_PANE;
+				else process.env.TMUX_PANE = previousTmuxPane;
+				if (previousNodeOptions === undefined) delete process.env.NODE_OPTIONS;
+				else process.env.NODE_OPTIONS = previousNodeOptions;
+			}
+		});
+
 		it('should use original command when sessionCustomPath is not provided', async () => {
 			const mockAgent = {
 				id: 'claude-code',

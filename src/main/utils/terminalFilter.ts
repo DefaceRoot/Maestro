@@ -193,6 +193,13 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 		.replace(/Starting MCP servers\s*\(\d+\/\d+\):\s*/gi, '')
 		.replace(/interrupt:\s*Ctrl\+C,\s*esc to (?:interrupt|queue message)/gi, '')
 		.replace(/tab to queue message/gi, '')
+		.replace(/Use \/mcp to list configured MCP tools\.?/gi, '')
+		.replace(/Use \/skills to list available skills\.?/gi, '')
+		.replace(/Use \/personality to customize how Codex communicates\.?/gi, '')
+		.replace(/Run \/review on my current changes\.?/gi, '')
+		.replace(/Restart Codex to use it\.?/gi, '')
+		.replace(/Under-development features are incomplete and may behave unpredictably\.?/gi, '')
+		.replace(/^Tip:\s*$/gim, '')
 		.replace(/gpt-[^\n·]+(?:\s*·\s*[^\n·]+){1,8}/gi, '')
 		.replace(
 			/⚠\s*Under-development features enabled:[\s\S]*?suppress_unstable_features_warning\s*=\s*true\s*in\s*\/[^\s]+config\.toml\.?/gi,
@@ -224,10 +231,18 @@ export function stripAiPtyOutput(text: string, lastCommand?: string): string {
 			/^sandbox:\s/i.test(trimmed) ||
 			/^reasoning (?:effort|summaries?):\s/i.test(trimmed) ||
 			/^session id:\s/i.test(trimmed) ||
-			/^Tip:\s/i.test(trimmed) ||
+			/^Tip:/i.test(trimmed) ||
+			/^(Use|Run)\s+\/[\w-]+/i.test(trimmed) ||
+			/restart codex to use it/i.test(trimmed) ||
+			/under-development features are incomplete/i.test(trimmed) ||
+			/^Working(?:\s*\(.*\))?$/i.test(trimmed) ||
 			/^gpt-[^·]+·/.test(trimmed) ||
+			(/gpt-\S+/i.test(trimmed) &&
+				(/window/i.test(trimmed) || /weekly\s+\d+%/i.test(trimmed) || /used/i.test(trimmed))) ||
 			/^›(?:[ \t].*)?$/.test(trimmed) ||
 			/^Starting MCP servers/i.test(trimmed) ||
+			/esc to interrupt/i.test(trimmed) ||
+			/omx_[\w-]+/i.test(trimmed) ||
 			/^(omx_[\w-]+(?:,\s*)?)+$/i.test(trimmed) ||
 			/^interrupt:\s/i.test(trimmed) ||
 			/^Reading additional input from stdin/i.test(trimmed) ||

@@ -677,6 +677,30 @@ describe('terminalFilter', () => {
 
 			expect(stripAiPtyOutput(input)).toBe('Meaningful assistant reply');
 		});
+
+		it('removes direct interactive Codex status hints and footer chrome', () => {
+			const input = [
+				'Tip: Use /mcp to list configured MCP tools.',
+				'Working',
+				'Use /skills to list available skills',
+				'Run /review on my current changes',
+				'gpt-5.4 high · 100% left · ~/Repos/Maestro · 1M window',
+				'Final assistant answer.',
+			].join('\n');
+
+			expect(stripAiPtyOutput(input)).toBe('Final assistant answer.');
+		});
+
+		it('removes screenshot-style OMX startup residue and keeps the assistant reply', () => {
+			const input = [
+				'Restart Codex to use it. Under-development features are incomplete and may behave unpredictably.',
+				' - omx_memory, omx_state, ... (0s • esc to interrupt)',
+				'gpt-5.4 high · 100% · ~/Repos/Maestro · 0% used · weekly 72% · 1M window · 019d50e…',
+				'Hi — how can I help?',
+			].join('\n');
+
+			expect(stripAiPtyOutput(input)).toBe('Hi — how can I help?');
+		});
 	});
 
 	describe('isCommandEcho', () => {

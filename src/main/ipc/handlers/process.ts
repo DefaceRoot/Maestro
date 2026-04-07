@@ -29,7 +29,9 @@ import { MaestroSettings } from './persistence';
 import {
 	getCodexCustomPathError,
 	resolveCodexLaunchCommand,
+	shouldForceDirectOmxLaunch,
 	shouldUseRawStdinForCodex,
+	withDirectOmxLaunchEnv,
 	withCodexHomeEnv,
 } from '../../utils/codexTransport';
 
@@ -365,6 +367,19 @@ export function registerProcessHandlers(deps: ProcessHandlerDependencies): void 
 						shell: shellToUse,
 						shellSource: shellConfig.source,
 					});
+				}
+
+				if (
+					shouldForceDirectOmxLaunch(
+						config.toolType,
+						Boolean(config.prompt),
+						Boolean(config.sessionSshRemoteConfig?.enabled)
+					)
+				) {
+					customEnvVarsToPass = withDirectOmxLaunchEnv(
+						customEnvVarsToPass,
+						require('path').resolve(__dirname, '../../utils/omxDirectLaunchPreload.js')
+					);
 				}
 
 				// ========================================================================

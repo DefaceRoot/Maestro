@@ -12,6 +12,8 @@ import { getStdinFlags } from '../../utils/spawnHelpers';
 import {
 	buildCodexInteractiveSpawnConfig,
 	getCodexInteractiveProcessSessionId,
+	primeCodexInteractiveReady,
+	waitForCodexInteractiveReady,
 } from '../../utils/codexInteractive';
 import { generateId } from '../../utils/ids';
 import { substituteTemplateVariables } from '../../utils/templateVariables';
@@ -887,6 +889,7 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 						const processExists = activeProcesses.some((p) => p.sessionId === targetSessionId);
 
 						if (!processExists) {
+							primeCodexInteractiveReady(targetSessionId);
 							let unsubscribeReadyListener: (() => void) | undefined;
 							const readyPromise = new Promise<void>((resolve) => {
 								let resolved = false;
@@ -913,8 +916,13 @@ export function useInputProcessing(deps: UseInputProcessingDeps): UseInputProces
 
 							await readyPromise;
 						}
+						await waitForCodexInteractiveReady(targetSessionId, processExists);
 
-						await window.maestro.process.write(targetSessionId, `${capturedInputValue}\n`);
+						await window.maestro.process.write(targetSessionId, capturedInputValue);
+						await new Promise((resolve) => setTimeout(resolve, 120));
+						await window.maestro.process.write(targetSessionId, '\r');
+						await new Promise((resolve) => setTimeout(resolve, 100));
+						await window.maestro.process.write(targetSessionId, '\r');
 					} catch (error) {
 						console.error('Failed to start/write interactive Codex session:', error);
 						const errorLog: LogEntry = {

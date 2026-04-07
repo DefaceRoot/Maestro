@@ -48,6 +48,10 @@ import { getActiveTab, getWriteModeTab } from '../../utils/tabHelpers';
 import { formatRelativeTime } from '../../../shared/formatters';
 import { parseSynopsis } from '../../../shared/synopsis';
 import { autorunSynopsisPrompt } from '../../../prompts';
+import {
+	clearCodexInteractiveReady,
+	observeCodexInteractiveChunk,
+} from '../../utils/codexInteractive';
 import type { RightPanelHandle } from '../../components/RightPanel';
 import { useGroupChatStore } from '../../stores/groupChatStore';
 
@@ -240,6 +244,11 @@ export function useAgentListeners(deps: UseAgentListenersDeps): void {
 				return;
 			}
 
+			const sessionForCodexReady = getSessions().find((s) => s.id === actualSessionId);
+			if (sessionForCodexReady?.toolType === 'codex') {
+				observeCodexInteractiveChunk(sessionId, data);
+			}
+
 			// Batch the log append, delivery mark, unread mark, and byte tracking
 			deps.batchedUpdater.appendLog(actualSessionId, targetTabId, true, data);
 			deps.batchedUpdater.markDelivered(actualSessionId, targetTabId);
@@ -303,6 +312,7 @@ export function useAgentListeners(deps: UseAgentListenersDeps): void {
 					actualSessionId = aiTabMatch[1];
 					tabIdFromSession = aiTabMatch[2];
 					isFromAi = true;
+					clearCodexInteractiveReady(sessionId);
 				} else if (sessionId.endsWith('-terminal')) {
 					actualSessionId = sessionId.slice(0, -9);
 					isFromAi = false;
